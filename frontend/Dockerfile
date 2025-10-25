@@ -1,5 +1,5 @@
 # --- Stage 1: Build the React app with Bun ---
-FROM oven/bun:latest as build
+FROM oven/bun:latest AS build
 
 WORKDIR /app
 
