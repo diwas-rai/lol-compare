@@ -1,0 +1,18 @@
+# General files to ignore
+**/.git
+**/.gitignore
+**/.DS_Store
+**/node_modules
+**/dist
+**/build
+**/bun.lock
+**/poetry.lock
+**/pycache__
+**/*.pyc
+
+# Logs and temporary files
+**/*.log
+**/.env
+**/.env.local
+**/.vscode
+**/.idea
