@@ -7,7 +7,7 @@
 **/build
 **/bun.lock
 **/poetry.lock
-**/pycache__
+**/__pycache__
 **/*.pyc
 
 # Logs and temporary files
