@@ -9,8 +9,6 @@ router = APIRouter()
 
 ConfigDeps = Annotated[Settings, Depends(get_settings)]
 
-RIOT_API_KEY = os.getenv("RIOT_API_KEY")
-
 
 @router.get("/")
 async def get_matches(gameName: str, tagLine: str, settings: ConfigDeps):
