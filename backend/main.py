@@ -22,6 +22,7 @@ app.add_middleware(
 )
 
 app.include_router(matches.router, prefix="/api/matches", tags=["Matches"])
+app.include_router(pro_stats.router, prefix="/api/pro-stats", tags=["Pro Stats"])
 
 
 @app.get("/")

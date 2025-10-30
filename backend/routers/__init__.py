@@ -1,1 +1,1 @@
-__all__ = ["matches"]
+__all__ = ["matches", "pro_stats"]
