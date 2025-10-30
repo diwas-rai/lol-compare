@@ -1,0 +1,24 @@
+name: Ensure formatting
+
+on: 
+  push
+
+jobs:
+  ensure-formatting:
+    name: Ensure code formatting
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Check formatting is correct for Python backend
+        run:
+          poetry -C backend run ruff format --check
+    
+      - name: Check formatting is correct for Typescript frontend
+        run:
+          bunx prettier "frontend/**/*.{ts, tsx, js, jsx, json}"
