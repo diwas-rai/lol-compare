@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import './App.css';
-import reactLogo from './assets/react.svg';
-import viteLogo from '/vite.svg';
+import { useEffect, useState } from "react";
+import "./App.css";
+import reactLogo from "./assets/react.svg";
+import viteLogo from "/vite.svg";
 
 interface ApiData {
   id: number;
@@ -51,15 +51,21 @@ function App() {
 
       <div className="card">
         {loading && <p>Loading data from backend...</p>}
-        
-        {error && (
-          <p style={{ color: "red" }}>Error: {error.message}</p>
-        )}
+
+        {error && <p style={{ color: "red" }}>Error: {error.message}</p>}
 
         {backendData && (
           <div>
             <h2>Data from Backend:</h2>
-            <pre style={{ textAlign: 'left', backgroundColor: '#f0f0f0', color: '#333', padding: '10px', borderRadius: '5px' }}>
+            <pre
+              style={{
+                textAlign: "left",
+                backgroundColor: "#f0f0f0",
+                color: "#333",
+                padding: "10px",
+                borderRadius: "5px",
+              }}
+            >
               {JSON.stringify(backendData, null, 2)}
             </pre>
           </div>

@@ -16,14 +16,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/")
 def read_root():
     return {"message": "Hello from the FastAPI backend!"}
+
 
 @app.get("/api/data")
 def get_data():
     return {
         "id": 123,
         "name": "Sample Data",
-        "description": "This data came from your Python backend."
+        "description": "This data came from your Python backend.",
     }
