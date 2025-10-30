@@ -15,6 +15,9 @@ jobs:
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
 
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
       - name: Check formatting is correct for Python backend
         run:
           poetry -C backend run ruff format --check
