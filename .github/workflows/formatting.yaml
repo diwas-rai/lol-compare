@@ -18,6 +18,11 @@ jobs:
       - name: Install Poetry
         uses: snok/install-poetry@v1
 
+      - name: Install python dependencies 
+        run: 
+            cd backend &&
+            poetry install
+
       - name: Check formatting is correct for Python backend
         run:
           poetry -C backend run ruff format --check
