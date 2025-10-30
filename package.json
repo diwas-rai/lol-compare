@@ -18,7 +18,7 @@
     "prepare": "husky"
   },
   "lint-staged": {
-    "frontend/**/*.{ts,tsx,js,jsx,json,css,md}": [
+    "frontend/**/*.{ts,tsx,js,jsx,json,md}": [
       "bunx prettier --write"
     ],
     "backend/**/*.py": [
