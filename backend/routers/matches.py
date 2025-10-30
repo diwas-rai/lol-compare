@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends
 import requests
-import os
 from typing import Annotated
 from config import get_settings, Settings
 
