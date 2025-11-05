@@ -18,6 +18,8 @@ async def get_pro_player_stats(settings: ConfigDeps):
     if not S3_BUCKET_NAME:
         raise HTTPException(status_code=500, detail="S3_BUCKET_NAME is not set")
 
+    if not UMAP_COORDS_KEY:
+        raise HTTPException(status_code=500, detail="COORDS is not set")
     s3_client = boto3.client("s3")
     print(f"Accessing files from bucket: {S3_BUCKET_NAME}...")
 
