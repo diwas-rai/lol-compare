@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 import io
 import boto3
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import joblib
 
@@ -16,9 +16,9 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     S3_BUCKET_NAME = settings.S3_BUCKET_NAME
     UMAP_MODEL_KEY = settings.UMAP_MODEL_KEY
+    SCALER_KEY = settings.SCALER_KEY
 
     print("Loading model...")
-
     try:
         s3_client = boto3.client(
             "s3",
@@ -29,15 +29,25 @@ async def lifespan(app: FastAPI):
         model_data = response["Body"].read()
         app.state.model = joblib.load(io.BytesIO(model_data))
         print("Model loaded successfully.")
-
     except Exception as e:
         print(f"Error loading model: {e}")
         app.state.model = None
+
+    print("Loading scaler...")
+    try:
+        response = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=SCALER_KEY)
+        scaler_data = response["Body"].read()
+        app.state.scaler = joblib.load(io.BytesIO(scaler_data))
+        print("Scaler loaded successfully.")
+    except Exception as e:
+        print(f"Error loading Scaler : {e}")
+        app.state.scaler = None
 
     yield
 
     print("Application shutting down...")
     app.state.model = None
+    app.state.scaler = None
 
 
 app = FastAPI(lifespan=lifespan)

@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     S3_BUCKET_NAME: str
     UMAP_COORDS_KEY: str
     UMAP_MODEL_KEY: str
+    SCALER_KEY: str
     AWS_ACCESS_KEY_ID: str
     AWS_SECRET_ACCESS_KEY: str
 
