@@ -1,0 +1,80 @@
+from pydantic import BaseModel, Field
+
+
+class UserStats(BaseModel):
+    kills: float
+    deaths: float
+    assists: float
+    dpm: float
+    damageshare: float
+    damagetakenperminute: float
+    wpm: float
+    wcpm: float
+    vspm: float
+    earned_gpm: float
+    cspm: float
+    goldat10: float
+    xpat10: float
+    csat10: float
+    opp_goldat10: float
+    opp_xpat10: float
+    opp_csat10: float
+    golddiffat10: float
+    xpdiffat10: float
+    csdiffat10: float
+    killsat10: float
+    assistsat10: float
+    deathsat10: float
+    opp_killsat10: float
+    opp_assistsat10: float
+    opp_deathsat10: float
+    goldat15: float
+    xpat15: float
+    csat15: float
+    opp_goldat15: float
+    opp_xpat15: float
+    opp_csat15: float
+    golddiffat15: float
+    xpdiffat15: float
+    csdiffat15: float
+    killsat15: float
+    assistsat15: float
+    deathsat15: float
+    opp_killsat15: float
+    opp_assistsat15: float
+    opp_deathsat15: float
+    goldat20: float
+    xpat20: float
+    csat20: float
+    opp_goldat20: float
+    opp_xpat20: float
+    opp_csat20: float
+    golddiffat20: float
+    xpdiffat20: float
+    csdiffat20: float
+    killsat20: float
+    assistsat20: float
+    deathsat20: float
+    opp_killsat20: float
+    opp_assistsat20: float
+    opp_deathsat20: float
+    goldat25: float
+    xpat25: float
+    csat25: float
+    opp_goldat25: float
+    opp_xpat25: float
+    opp_csat25: float
+    golddiffat25: float
+    xpdiffat25: float
+    csdiffat25: float
+    killsat25: float
+    assistsat25: float
+    deathsat25: float
+    opp_killsat25: float
+    opp_assistsat25: float
+    opp_deathsat25: float
+
+    earned_gpm: float = Field(..., alias="earned gpm")
+
+    class Config:
+        populate_by_name = True
