@@ -1,9 +1,11 @@
 from contextlib import asynccontextmanager
 import io
+from typing import Iterator, Tuple
 import boto3
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import joblib
+import numpy as np
 
 from config import get_settings
 from routers import *
@@ -14,9 +16,6 @@ async def lifespan(app: FastAPI):
     print("Backend starting...")
 
     settings = get_settings()
-    S3_BUCKET_NAME = settings.S3_BUCKET_NAME
-    UMAP_MODEL_KEY = settings.UMAP_MODEL_KEY
-    SCALER_KEY = settings.SCALER_KEY
 
     print("Loading model...")
     try:
@@ -25,7 +24,9 @@ async def lifespan(app: FastAPI):
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
         )
-        response = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=UMAP_MODEL_KEY)
+        response = s3_client.get_object(
+            Bucket=settings.S3_BUCKET_NAME, Key=settings.UMAP_MODEL_KEY
+        )
         model_data = response["Body"].read()
         app.state.model = joblib.load(io.BytesIO(model_data))
         print("Model loaded successfully.")
@@ -35,7 +36,9 @@ async def lifespan(app: FastAPI):
 
     print("Loading scaler...")
     try:
-        response = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=SCALER_KEY)
+        response = s3_client.get_object(
+            Bucket=settings.S3_BUCKET_NAME, Key=settings.SCALER_KEY
+        )
         scaler_data = response["Body"].read()
         app.state.scaler = joblib.load(io.BytesIO(scaler_data))
         print("Scaler loaded successfully.")
@@ -43,11 +46,30 @@ async def lifespan(app: FastAPI):
         print(f"Error loading Scaler : {e}")
         app.state.scaler = None
 
+    try:
+        print(f"Loading pro coords...")
+        response = s3_client.get_object(
+            Bucket=settings.S3_BUCKET_NAME, Key=settings.UMAP_COORDS_KEY
+        )
+        pro_coords_data = response["Body"].read()
+        pro_coords_zip_obj: Iterator[Tuple[str, np.ndarray]] = joblib.load(
+            io.BytesIO(pro_coords_data)
+        )
+        pro_coords_dict = {
+            player_name: coord.tolist() for player_name, coord in pro_coords_zip_obj
+        }
+        app.state.pro_coords = pro_coords_dict
+        print("Pro coords object loaded successfully.")
+    except Exception as e:
+        print(f"Error loading pro coords: {e}")
+        app.state.pro_coords = None
+
     yield
 
     print("Application shutting down...")
     app.state.model = None
     app.state.scaler = None
+    app.state.pro_coords = None
 
 
 app = FastAPI(lifespan=lifespan)
