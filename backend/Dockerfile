@@ -1,26 +1,20 @@
-FROM python:3.14-alpine AS build
+FROM python:3.12-slim
+WORKDIR /backend
 
-WORKDIR /app
+# Set up dependencies
+COPY poetry.lock pyproject.toml ./
 
-RUN pip install poetry
+# Install poetry and project dependencies
+RUN pip install --no-cache-dir poetry \
+    && poetry config virtualenvs.create false \
+    && poetry install --no-interaction --no-ansi --no-root
 
-RUN poetry config virtualenvs.in-project true
-
-COPY pyproject.toml poetry.lock ./
-
-RUN poetry install --only main --no-root
-
-
-FROM python:3.14-alpine
-
-WORKDIR /app
-
-COPY --from=build /app/.venv .venv
-
+# Copy the rest of the application code
 COPY . .
 
-ENV PATH="/app/.venv/bin:$PATH"
-
 EXPOSE 8000
+
+RUN useradd --create-home backend
+USER backend
 
 CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000"]
