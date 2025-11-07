@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   createContainer,
   VictoryAxis,
@@ -18,12 +18,10 @@ interface CoordPoint {
   key: string;
 }
 
+const VictoryZoomVoronoiContainer = createContainer("zoom", "voronoi");
+
 export default function Home() {
   const [backendData, setBackendData] = useState<CoordPoint[] | null>(null);
-  const [minX, setMinX] = useState<number>();
-  const [minY, setMinY] = useState<number>();
-  const [maxX, setMaxX] = useState<number>();
-  const [maxY, setMaxY] = useState<number>();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -40,13 +38,6 @@ export default function Home() {
           ([key, [x, y]]) => ({ x, y, key }),
         );
         setBackendData(coords);
-        const allX = coords.map((point) => point.x);
-        const allY = coords.map((point) => point.y);
-
-        setMaxX(Math.max(...allX));
-        setMaxY(Math.max(...allY));
-        setMinX(Math.min(...allX));
-        setMinY(Math.min(...allY));
         setLoading(false);
       })
       .catch((err: unknown) => {
@@ -59,7 +50,29 @@ export default function Home() {
       });
   }, []);
 
-  const VictoryZoomVoronoiContainer = createContainer("zoom", "voronoi");
+  const calculateDomain = (data: CoordPoint[]) => {
+    return data.reduce(
+      (acc, point) => ({
+        minX: Math.min(acc.minX, point.x),
+        maxX: Math.max(acc.maxX, point.x),
+        minY: Math.min(acc.minY, point.y),
+        maxY: Math.max(acc.maxY, point.y),
+      }),
+      {
+        minX: data[0]?.x || 0,
+        maxX: data[0]?.x || 0,
+        minY: data[0]?.y || 0,
+        maxY: data[0]?.y || 0,
+      },
+    );
+  };
+
+  const domain = useMemo((): { x: [number, number]; y: [number, number] } => {
+    if (!backendData || backendData.length === 0)
+      return { x: [0, 0], y: [0, 0] };
+    const { minX, maxX, minY, maxY } = calculateDomain(backendData);
+    return { x: [minX - 1, maxX + 1], y: [minY - 1, maxY + 1] };
+  }, [backendData]);
 
   return (
     <div className="App">
@@ -70,38 +83,33 @@ export default function Home() {
       {backendData && (
         <div style={{ width: "500px" }}>
           <h2>Data from Backend:</h2>
-          {minX !== undefined &&
-            maxX !== undefined &&
-            minY !== undefined &&
-            maxY !== undefined && (
-              <VictoryChart
-                domain={{ x: [minX - 1, maxX + 1], y: [minY - 1, maxY + 1] }}
-                theme={VictoryTheme.material}
-                containerComponent={
-                  <VictoryZoomVoronoiContainer
-                    labels={({ datum }) => datum.key}
-                    labelComponent={<VictoryTooltip dy={-10} />}
-                    radius={7}
-                  />
-                }
-              >
-                <VictoryAxis
-                  style={{
-                    grid: { strokeOpacity: 0 },
-                    axis: { strokeOpacity: 0 },
-                    axisLabel: { strokeOpacity: 0 },
-                    tickLabels: { fillOpacity: 0 },
-                    ticks: { strokeOpacity: 0 },
-                  }}
-                />
+          <VictoryChart
+            domain={domain}
+            theme={VictoryTheme.material}
+            containerComponent={
+              <VictoryZoomVoronoiContainer
+                labels={({ datum }) => datum.key}
+                labelComponent={<VictoryTooltip dy={-10} />}
+                radius={7}
+              />
+            }
+          >
+            <VictoryAxis
+              style={{
+                grid: { strokeOpacity: 0 },
+                axis: { strokeOpacity: 0 },
+                axisLabel: { strokeOpacity: 0 },
+                tickLabels: { fillOpacity: 0 },
+                ticks: { strokeOpacity: 0 },
+              }}
+            />
 
-                <VictoryScatter
-                  size={7}
-                  data={backendData}
-                  style={{ data: { opacity: 0.5 } }}
-                />
-              </VictoryChart>
-            )}
+            <VictoryScatter
+              size={7}
+              data={backendData}
+              style={{ data: { opacity: 0.5 } }}
+            />
+          </VictoryChart>
         </div>
       )}
     </div>
