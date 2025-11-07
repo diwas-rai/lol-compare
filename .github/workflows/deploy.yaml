@@ -74,7 +74,7 @@ jobs:
           role-to-assume: ${{ secrets.EC2_DEPLOY_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Send SSM Command to Pull and Run Docker Compose
+      - name: Send SSM Command to run deploy.sh script
         run: |
           aws ssm send-command \
             --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
@@ -82,9 +82,6 @@ jobs:
             --comment "Deploy latest images via Docker Compose - ${{ github.sha }}" \
             --parameters commands='[
               "cd ${{ env.COMPOSE_DIR }}",
-              "aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com",
-              "docker compose pull",
-              "docker compose up -d",
-              "docker image prune -af"
+              "./deploy.sh > deploy.log 2>&1"
             ]' \
             --output text
