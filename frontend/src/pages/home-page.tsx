@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import {
+  createContainer,
   VictoryAxis,
   VictoryChart,
   VictoryScatter,
   VictoryTheme,
   VictoryTooltip,
-  VictoryZoomContainer,
 } from "victory";
 
 interface CoordsFromBackend {
@@ -59,6 +59,8 @@ export default function Home() {
       });
   }, []);
 
+  const VictoryZoomVoronoiContainer = createContainer("zoom", "voronoi");
+
   return (
     <div className="App">
       {loading && <p>Loading data from backend...</p>}
@@ -75,7 +77,12 @@ export default function Home() {
               <VictoryChart
                 domain={{ x: [minX - 1, maxX + 1], y: [minY - 1, maxY + 1] }}
                 theme={VictoryTheme.material}
-                containerComponent={<VictoryZoomContainer />}
+                containerComponent={
+                  <VictoryZoomVoronoiContainer
+                    labels={({ datum }) => datum.key}
+                    labelComponent={<VictoryTooltip dy={-10} />}
+                  />
+                }
               >
                 <VictoryAxis
                   style={{
@@ -91,8 +98,6 @@ export default function Home() {
                   size={7}
                   data={backendData}
                   style={{ data: { opacity: 0.5 } }}
-                  labels={({ datum }) => datum.key}
-                  labelComponent={<VictoryTooltip dy={-10} />}
                 />
               </VictoryChart>
             )}
