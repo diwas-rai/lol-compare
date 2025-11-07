@@ -68,7 +68,7 @@ export default function Home() {
       {error && <p style={{ color: "red" }}>Error: {error.message}</p>}
 
       {backendData && (
-        <div>
+        <div style={{ width: "500px" }}>
           <h2>Data from Backend:</h2>
           {minX !== undefined &&
             maxX !== undefined &&
@@ -81,6 +81,7 @@ export default function Home() {
                   <VictoryZoomVoronoiContainer
                     labels={({ datum }) => datum.key}
                     labelComponent={<VictoryTooltip dy={-10} />}
+                    radius={7}
                   />
                 }
               >
