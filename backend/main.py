@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 import io
 from typing import Iterator, Tuple
@@ -10,50 +11,42 @@ import numpy as np
 from config import get_settings
 from routers import *
 
+logger = logging.getLogger("uvicorn.error")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Backend starting...")
+    logger.info("Backend starting... Lifespan initiated.")
 
     settings = get_settings()
+    s3_client = None
 
     try:
-        print("Initialising S3 client...")
+        logger.info("Initialising S3 client...")
         s3_client = boto3.client(
             "s3",
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
         )
-        print("S3 client initialised successfully.")
-    except Exception as e:
-        print(f"Error initialising S3 client: {e}")
+        logger.info("S3 client initialised successfully.")
 
-    try:
-        print("Loading model...")
+        logger.info("Loading model...")
         response = s3_client.get_object(
             Bucket=settings.S3_BUCKET_NAME, Key=settings.UMAP_MODEL_KEY
         )
         model_data = response["Body"].read()
         app.state.model = joblib.load(io.BytesIO(model_data))
-        print("Model loaded successfully.")
-    except Exception as e:
-        print(f"Error loading model: {e}")
-        app.state.model = None
+        logger.info("Model loaded successfully.")
 
-    try:
-        print("Loading scaler...")
+        logger.info("Loading scaler...")
         response = s3_client.get_object(
             Bucket=settings.S3_BUCKET_NAME, Key=settings.SCALER_KEY
         )
         scaler_data = response["Body"].read()
         app.state.scaler = joblib.load(io.BytesIO(scaler_data))
-        print("Scaler loaded successfully.")
-    except Exception as e:
-        print(f"Error loading scaler : {e}")
-        app.state.scaler = None
+        logger.info("Scaler loaded successfully.")
 
-    try:
-        print(f"Loading pro coords...")
+        logger.info("Loading pro coords...")
         response = s3_client.get_object(
             Bucket=settings.S3_BUCKET_NAME, Key=settings.UMAP_COORDS_KEY
         )
@@ -65,15 +58,21 @@ async def lifespan(app: FastAPI):
             player_name: coord.tolist() for player_name, coord in pro_coords_zip_obj
         }
         app.state.pro_coords = pro_coords_dict
-        print("Pro coords object loaded successfully.")
+        logger.info("Pro coords object loaded successfully.")
     except Exception as e:
-        print(f"Error loading pro coords: {e}")
-        app.state.pro_coords = None
+        logger.error(
+            f"CRITICAL STARTUP FAILURE: Error during loading: {e}", exc_info=True
+        )
+        raise  # Immediately abort startup
+    finally:
+        if s3_client:
+            logger.info("S3 client operations complete. Closing client.")
+            s3_client.close()
 
-    s3_client.close()
+    logger.info("Startup complete.")
     yield
 
-    print("Application shutting down...")
+    logger.info("Application shutting down...")
     app.state.model = None
     app.state.scaler = None
     app.state.pro_coords = None
