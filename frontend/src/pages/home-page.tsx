@@ -1,8 +1,29 @@
 import { useEffect, useState } from "react";
-import reactLogo from "../assets/react.svg";
+import {
+  VictoryAxis,
+  VictoryChart,
+  VictoryScatter,
+  VictoryTheme,
+  VictoryTooltip,
+  VictoryZoomContainer,
+} from "victory";
+
+interface CoordsFromBackend {
+  [key: string]: [number, number];
+}
+
+interface CoordPoint {
+  x: number;
+  y: number;
+  key: string;
+}
 
 export default function Home() {
-  const [backendData, setBackendData] = useState(null);
+  const [backendData, setBackendData] = useState<CoordPoint[] | null>(null);
+  const [minX, setMinX] = useState<number>();
+  const [minY, setMinY] = useState<number>();
+  const [maxX, setMaxX] = useState<number>();
+  const [maxY, setMaxY] = useState<number>();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -15,7 +36,17 @@ export default function Home() {
         return response.json();
       })
       .then((data) => {
-        setBackendData(data);
+        const coords = Object.entries(data as CoordsFromBackend).map(
+          ([key, [x, y]]) => ({ x, y, key }),
+        );
+        setBackendData(coords);
+        const allX = coords.map((point) => point.x);
+        const allY = coords.map((point) => point.y);
+
+        setMaxX(Math.max(...allX));
+        setMaxY(Math.max(...allY));
+        setMinX(Math.min(...allX));
+        setMinY(Math.min(...allY));
         setLoading(false);
       })
       .catch((err: unknown) => {
@@ -30,36 +61,43 @@ export default function Home() {
 
   return (
     <div className="App">
-      <div>
-        <a href="https://reactjs.org" target="_blank" rel="noreferrer">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React + Bun ⚡ (TypeScript)</h1>
-      <hr />
+      {loading && <p>Loading data from backend...</p>}
 
-      <div className="card">
-        {loading && <p>Loading data from backend...</p>}
+      {error && <p style={{ color: "red" }}>Error: {error.message}</p>}
 
-        {error && <p style={{ color: "red" }}>Error: {error.message}</p>}
+      {backendData && (
+        <div>
+          <h2>Data from Backend:</h2>
+          {minX !== undefined &&
+            maxX !== undefined &&
+            minY !== undefined &&
+            maxY !== undefined && (
+              <VictoryChart
+                domain={{ x: [minX - 1, maxX + 1], y: [minY - 1, maxY + 1] }}
+                theme={VictoryTheme.material}
+                containerComponent={<VictoryZoomContainer />}
+              >
+                <VictoryAxis
+                  style={{
+                    grid: { strokeOpacity: 0 },
+                    axis: { strokeOpacity: 0 },
+                    axisLabel: { strokeOpacity: 0 },
+                    tickLabels: { fillOpacity: 0 },
+                    ticks: { strokeOpacity: 0 },
+                  }}
+                />
 
-        {backendData && (
-          <div>
-            <h2>Data from Backend:</h2>
-            <pre
-              style={{
-                textAlign: "left",
-                backgroundColor: "#f0f0f0",
-                color: "#333",
-                padding: "10px",
-                borderRadius: "5px",
-              }}
-            >
-              {JSON.stringify(backendData, null, 2)}
-            </pre>
-          </div>
-        )}
-      </div>
+                <VictoryScatter
+                  size={7}
+                  data={backendData}
+                  style={{ data: { opacity: 0.5 } }}
+                  labels={({ datum }) => datum.key}
+                  labelComponent={<VictoryTooltip dy={-10} />}
+                />
+              </VictoryChart>
+            )}
+        </div>
+      )}
     </div>
   );
 }
