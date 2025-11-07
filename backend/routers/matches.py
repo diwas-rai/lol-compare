@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 import requests
 from typing import Annotated
 from config import get_settings, Settings
@@ -19,6 +19,8 @@ async def get_matches(gameName: str, tagLine: str, settings: ConfigDeps):
         player_details = player_details_response.json()
 
         puuid = player_details.get("puuid")
+        if not puuid:
+            raise HTTPException(status_code=404, detail="Player not found")
 
         match_list_response = requests.get(
             f"https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid.strip()}/ids?type=ranked&start=0&count=20",
@@ -28,4 +30,4 @@ async def get_matches(gameName: str, tagLine: str, settings: ConfigDeps):
         return match_list_response.json()
 
     except Exception as e:
-        return {"error": "An internal server error occurred", "detail": str(e)}, 500
+        raise HTTPException(status_code=500, detail="Internal server error")
