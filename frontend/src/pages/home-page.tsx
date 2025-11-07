@@ -26,7 +26,7 @@ export default function Home() {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_BASE_URL}/api/pro-stats/coords/`)
+    fetch("/api/pro-stats/coords/")
       .then((response) => {
         if (!response.ok) {
           throw new Error("Network response was not ok");
