@@ -11,7 +11,7 @@ class UserStats(BaseModel):
     wpm: float
     wcpm: float
     vspm: float
-    earned_gpm: float
+    earned_gpm: float = Field(..., alias="earned gpm")
     cspm: float
     goldat10: float
     xpat10: float
@@ -73,8 +73,6 @@ class UserStats(BaseModel):
     opp_killsat25: float
     opp_assistsat25: float
     opp_deathsat25: float
-
-    earned_gpm: float = Field(..., alias="earned gpm")
 
     class Config:
         populate_by_name = True
