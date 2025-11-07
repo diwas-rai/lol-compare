@@ -15,7 +15,8 @@
     "typescript": "^5"
   },
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "start-dev": "concurrently --raw \"cd backend && uvicorn main:app --reload --port 8000\" \"cd frontend && bun run dev\""
   },
   "lint-staged": {
     "frontend/**/*.{ts,tsx,js,jsx,json,md}": [
@@ -24,5 +25,8 @@
     "backend/**/*.py": [
       "poetry -C backend run ruff format"
     ]
+  },
+  "dependencies": {
+    "concurrently": "^9.2.1"
   }
 }
