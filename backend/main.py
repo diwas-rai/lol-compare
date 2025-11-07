@@ -17,13 +17,19 @@ async def lifespan(app: FastAPI):
 
     settings = get_settings()
 
-    print("Loading model...")
     try:
+        print("Initialising S3 client...")
         s3_client = boto3.client(
             "s3",
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
         )
+        print("S3 client initialised successfully.")
+    except Exception as e:
+        print(f"Error initialising S3 client: {e}")
+
+    try:
+        print("Loading model...")
         response = s3_client.get_object(
             Bucket=settings.S3_BUCKET_NAME, Key=settings.UMAP_MODEL_KEY
         )
@@ -34,8 +40,8 @@ async def lifespan(app: FastAPI):
         print(f"Error loading model: {e}")
         app.state.model = None
 
-    print("Loading scaler...")
     try:
+        print("Loading scaler...")
         response = s3_client.get_object(
             Bucket=settings.S3_BUCKET_NAME, Key=settings.SCALER_KEY
         )
@@ -64,6 +70,7 @@ async def lifespan(app: FastAPI):
         print(f"Error loading pro coords: {e}")
         app.state.pro_coords = None
 
+    s3_client.close()
     yield
 
     print("Application shutting down...")
