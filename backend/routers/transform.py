@@ -11,11 +11,11 @@ router = APIRouter()
 @router.post("/")
 async def transform_user_stats(user_stats: UserStats, request: Request):
     umap_model: UMAP = request.app.state.model
-    if umap_model == None:
+    if umap_model is None:
         raise HTTPException(status_code=500, detail="Model is not found.")
 
     scaler: StandardScaler = request.app.state.scaler
-    if scaler == None:
+    if scaler is None:
         raise HTTPException(status_code=500, detail="Scaler is not found.")
 
     features_list = user_stats.model_dump(by_alias=True)
