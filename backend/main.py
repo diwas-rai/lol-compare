@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
         app.state.scaler = joblib.load(io.BytesIO(scaler_data))
         print("Scaler loaded successfully.")
     except Exception as e:
-        print(f"Error loading Scaler : {e}")
+        print(f"Error loading scaler : {e}")
         app.state.scaler = None
 
     try:
