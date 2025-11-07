@@ -16,5 +16,5 @@ EXPOSE 8000
 
 RUN useradd --create-home backend
 USER backend
- 
+
 CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000"]
