@@ -1,20 +1,13 @@
-FROM python:3.12-slim
-WORKDIR /backend
+FROM public.ecr.aws/lambda/python:3.12
 
 # Set up dependencies
-COPY poetry.lock pyproject.toml ./
-
+COPY poetry.lock pyproject.toml ${LAMBDA_TASK_ROOT}
 # Install poetry and project dependencies
 RUN pip install --no-cache-dir poetry \
     && poetry config virtualenvs.create false \
-    && poetry install --no-interaction --no-ansi --no-root
+    && poetry install --no-interaction --no-ansi --no-root 
 
 # Copy the rest of the application code
-COPY . .
+COPY . ${LAMBDA_TASK_ROOT}
 
-EXPOSE 8000
-
-RUN useradd --create-home backend
-USER backend
-
-CMD ["gunicorn", "-w", "2", "-k", "uvicorn.workers.UvicornH11Worker", "main:app", "--bind", "0.0.0.0:8000"]
+CMD ["main.handler"]

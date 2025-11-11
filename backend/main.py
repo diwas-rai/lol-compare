@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import joblib
 import numpy as np
 from pathlib import Path
+from mangum import Mangum
 
 from routers import *
 
@@ -83,3 +84,6 @@ def get_data():
         "name": "Sample Data",
         "description": "This data came from your Python backend.",
     }
+
+
+handler = Mangum(app, lifespan="on")
