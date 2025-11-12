@@ -8,7 +8,7 @@ import pandas as pd
 router = APIRouter()
 
 
-@router.post("/")
+@router.post("")
 async def transform_user_stats(user_stats: UserStats, request: Request):
     umap_model: UMAP = request.app.state.model
     if umap_model is None:

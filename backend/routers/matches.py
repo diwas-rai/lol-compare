@@ -9,7 +9,7 @@ router = APIRouter()
 ConfigDeps = Annotated[Settings, Depends(get_settings)]
 
 
-@router.get("/")
+@router.get("")
 async def get_matches(gameName: str, tagLine: str, settings: ConfigDeps):
     try:
         player_details_response = requests.get(
