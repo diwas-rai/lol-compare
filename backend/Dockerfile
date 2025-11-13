@@ -1,20 +1,25 @@
-FROM python:3.12-slim
-WORKDIR /backend
+FROM python:3.12 AS builder
 
-# Set up dependencies
+RUN pip install poetry
+WORKDIR /usr/src/app
+
 COPY poetry.lock pyproject.toml ./
 
-# Install poetry and project dependencies
-RUN pip install --no-cache-dir poetry \
-    && poetry config virtualenvs.create false \
-    && poetry install --no-interaction --no-ansi --no-root
+RUN poetry config virtualenvs.in-project true \
+    && poetry install --no-root --without dev
 
-# Copy the rest of the application code
-COPY . .
+FROM public.ecr.aws/lambda/python:3.12
 
-EXPOSE 8000
+WORKDIR ${LAMBDA_TASK_ROOT}
 
-RUN useradd --create-home backend
-USER backend
+COPY --from=builder /usr/src/app/.venv ./.venv
 
-CMD ["gunicorn", "-w", "2", "-k", "uvicorn.workers.UvicornH11Worker", "main:app", "--bind", "0.0.0.0:8000"]
+COPY main.py config.py schemas.py dependencies.py ./
+COPY routers ./routers
+COPY assets ./assets
+
+ENV PYTHONPATH="${LAMBDA_TASK_ROOT}/.venv/lib/python3.12/site-packages"
+ENV PATH="${LAMBDA_TASK_ROOT}/.venv/bin:${PATH}"
+ENV VIRTUAL_ENV="${LAMBDA_TASK_ROOT}/.venv"
+
+CMD ["main.handler"]
