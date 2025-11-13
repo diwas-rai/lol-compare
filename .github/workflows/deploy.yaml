@@ -1,4 +1,4 @@
-name: Build, Push, and Deploy to EC2
+name: Build, Push, and Deploy to Lambda
 
 on:
   push:
@@ -9,6 +9,7 @@ env:
   ECR_BACKEND_REPOSITORY: lol-compare/backend
   ECR_FRONTEND_REPOSITORY: lol-compare/frontend
   COMPOSE_DIR: /home/ubuntu/lol-compare
+  CDK_STACK_NAME: CdkStack
 
 permissions:
   id-token: write
@@ -18,6 +19,9 @@ jobs:
   build-and-push:
     name: Build and Push Images to ECR
     runs-on: ubuntu-latest
+
+    outputs:
+      backend_image_sha: ${{ github.sha }}
 
     steps:
       - name: Checkout code
@@ -63,25 +67,29 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
-    name: Deploy to EC2 via SSM
+    name: Deploy to Lambda via CDK
     needs: build-and-push
     runs-on: ubuntu-latest
 
     steps:
-      - name: Configure AWS Credentials for EC2 Deploy
+      - name: Configure AWS Credentials for CDK Deploy
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.EC2_DEPLOY_ROLE_ARN }}
+          role-to-assume: ${{ secrets.CDK_DEPLOY_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Send SSM Command to run deploy.sh script
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.11.0
+
+      - name: Install CDK and project dependencies
         run: |
-          aws ssm send-command \
-            --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
-            --document-name "AWS-RunShellScript" \
-            --comment "Deploy latest images via Docker Compose - ${{ github.sha }}" \
-            --parameters commands='[
-              "cd ${{ env.COMPOSE_DIR }}",
-              "./deploy.sh > deploy.log 2>&1"
-            ]' \
-            --output text
+          npm install -g aws-cdk
+          npm ci
+        
+      - name: Deploy CDK stack
+        run: |
+          cdk deploy ${{ env.CDK_STACK_NAME }} \
+          --parameters ${{ env.CDK_STACK_NAME }}:imageTag=${{ needs.build-and-push.outputs.backend_image_sha }} \
+          --require-approval never
