@@ -1,0 +1,20 @@
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Ruff cache
+.ruff_cache
+
+# Environment files
+.env
+
+# IDE config
+.vscode/
