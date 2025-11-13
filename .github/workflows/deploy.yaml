@@ -27,9 +27,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Show file structure
-        run: ls -laR
-
       - name: Configure AWS Credentials for ECR Push
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -75,6 +72,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Configure AWS Credentials for CDK Deploy
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -85,16 +85,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24.11.0
-
-      - name: Install CDK and project dependencies
+      
+      - name: Install CDK dependencies
         working-directory: ./cdk
         run: |
           npm install -g aws-cdk
           npm ci
+          
         
       - name: Deploy CDK stack
         working-directory: ./cdk
         run: |
-          cdk deploy ${{ env.CDK_STACK_NAME }} \
+         cdk deploy ${{ env.CDK_STACK_NAME }} \
           --parameters ${{ env.CDK_STACK_NAME }}:imageTag=${{ needs.build-and-push.outputs.backend_image_sha }} \
           --require-approval never
