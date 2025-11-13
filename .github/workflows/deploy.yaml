@@ -84,12 +84,13 @@ jobs:
           node-version: 24.11.0
 
       - name: Install CDK and project dependencies
-        working-directory: cdk
+        working-directory: ./cdk
         run: |
           npm install -g aws-cdk
           npm ci
         
       - name: Deploy CDK stack
+        working-directory: ./cdk
         run: |
           cdk deploy ${{ env.CDK_STACK_NAME }} \
           --parameters ${{ env.CDK_STACK_NAME }}:imageTag=${{ needs.build-and-push.outputs.backend_image_sha }} \
