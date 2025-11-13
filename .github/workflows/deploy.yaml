@@ -84,6 +84,7 @@ jobs:
           node-version: 24.11.0
 
       - name: Install CDK and project dependencies
+        working-directory: cdk
         run: |
           npm install -g aws-cdk
           npm ci
