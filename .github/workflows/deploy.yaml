@@ -9,7 +9,7 @@ env:
   ECR_BACKEND_REPOSITORY: lol-compare/backend
   ECR_FRONTEND_REPOSITORY: lol-compare/frontend
   COMPOSE_DIR: /home/ubuntu/lol-compare
-  CDK_STACK_NAME: CdkStack
+  BACKEND_STACK_NAME: BackendStack
 
 permissions:
   id-token: write
@@ -95,9 +95,9 @@ jobs:
           npm ci
           
         
-      - name: Deploy CDK stack
+      - name: Deploy Backend stack
         working-directory: ./cdk
         run: |
-         cdk deploy ${{ env.CDK_STACK_NAME }} \
-          --parameters ${{ env.CDK_STACK_NAME }}:imageTag=${{ needs.build-and-push.outputs.backend_image_sha }} \
+         cdk deploy ${{ env.BACKEND_STACK_NAME }} \
+          --parameters ${{ env.BACKEND_STACK_NAME }}:imageTag=${{ needs.build-and-push.outputs.backend_image_sha }} \
           --require-approval never

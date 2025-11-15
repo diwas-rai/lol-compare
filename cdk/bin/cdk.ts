@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import * as cdk from "aws-cdk-lib/core";
-import { CdkStack } from "../lib/cdk-stack";
+import { BackendStack } from "../lib/backend-stack";
 import { CertificateStack } from "../lib/certificate-stack";
 import { FrontendStack } from "../lib/frontend-stack";
 
@@ -8,7 +8,7 @@ const domainName = "lol-compare.co.uk"
 const siteSubDomain = "www"
 
 const app = new cdk.App();
-new CdkStack(app, "CdkStack", {
+new BackendStack(app, "CdkStack", {
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: process.env.CDK_DEFAULT_REGION,
