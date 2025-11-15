@@ -1,4 +1,4 @@
-name: Build, Push, and Deploy to Lambda
+name: Build, Push, and Deploy to ECR, Lambda, S3, and Cloudfront
 
 on:
   push:
@@ -58,7 +58,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   build-frontend:
-    name: Build frontend
+    name: Build Frontend and Upload Artifact
     runs-on: ubuntu-latest
 
     steps:
@@ -78,7 +78,7 @@ jobs:
         run: |
           bun run build
         
-      - name: Upload Frtonend Artifact
+      - name: Upload Frontend Artifact
         uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
@@ -116,7 +116,7 @@ jobs:
           npm install -g aws-cdk
           npm ci
           
-      - name: Deploy Backend stack to Lambda
+      - name: Deploy All CDK Stacks
         working-directory: ./cdk
         env:
           CDK_DEFAULT_ACCOUNT: ${{ secrets.AWS_ACCOUNT_ID }}
