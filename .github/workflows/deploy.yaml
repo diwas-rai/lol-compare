@@ -10,6 +10,8 @@ env:
   ECR_FRONTEND_REPOSITORY: lol-compare/frontend
   COMPOSE_DIR: /home/ubuntu/lol-compare
   BACKEND_STACK_NAME: BackendStack
+  CERTIFICATE_STACK_NAME: CertificateStack 
+  FRONTEND_STACK_NAME: FrontendStack 
 
 permissions:
   id-token: write
@@ -55,21 +57,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build, Tag, and Push Frontend Image
-        uses: docker/build-push-action@v5
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        with:
-          context: ./frontend
-          push: true
-          tags: |
-            ${{ env.ECR_REGISTRY }}/${{ env.ECR_FRONTEND_REPOSITORY }}:latest
-            ${{ env.ECR_REGISTRY }}/${{ env.ECR_FRONTEND_REPOSITORY }}:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
   deploy:
-    name: Deploy to Lambda via CDK
+    name: Deploy application via CDK
     needs: build-and-push
     runs-on: ubuntu-latest
 
@@ -94,10 +83,18 @@ jobs:
           npm install -g aws-cdk
           npm ci
           
-        
-      - name: Deploy Backend stack
+      - name: Deploy Backend stack to Lambda
         working-directory: ./cdk
         run: |
          cdk deploy ${{ env.BACKEND_STACK_NAME }} \
           --parameters ${{ env.BACKEND_STACK_NAME }}:imageTag=${{ needs.build-and-push.outputs.backend_image_sha }} \
+          --require-approval never
+      
+      - name: Deploy Certificate and Frontend stack to S3 and Cloudfront
+        working-directory: ./cdk
+        env:
+          account: ${{ secrets.AWS_ACCOUNT_ID }}
+          region: ${{ secrets.AWS_REGION }}
+        run: |
+         cdk deploy ${{ env.CERTIFICATE_STACK_NAME }} ${{ env.FRONTEND_STACK_NAME }} \
           --require-approval never
