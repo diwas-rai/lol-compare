@@ -8,11 +8,12 @@ const domainName = "lol-compare.co.uk"
 const siteSubDomain = "www"
 
 const app = new cdk.App();
-new BackendStack(app, "CdkStack", {
+const backendStack = new BackendStack(app, "CdkStack", {
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: process.env.CDK_DEFAULT_REGION,
   },
+  crossRegionReferences: true,
 });
 
 const certificateStack = new CertificateStack(app, "CertificateStack", {
@@ -33,5 +34,6 @@ new FrontendStack(app, "FrontendStack", {
   domainName,
   siteSubDomain,
   certificate: certificateStack.certificate,
+  apiUrl: backendStack.functionUrl.url,
   crossRegionReferences: true,
 });

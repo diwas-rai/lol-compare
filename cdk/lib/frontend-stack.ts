@@ -12,6 +12,7 @@ interface FrontendStackProps extends cdk.StackProps {
   domainName: string;
   siteSubDomain: string;
   certificate: acm.ICertificate;
+  apiUrl: string;
 }
 
 export class FrontendStack extends cdk.Stack {
@@ -51,7 +52,12 @@ export class FrontendStack extends cdk.Stack {
     });
 
     new s3deploy.BucketDeployment(this, "DeployWithInvalidation", {
-      sources: [s3deploy.Source.asset("../frontend/dist")],
+      sources: [s3deploy.Source.asset("../frontend/dist"),
+        s3deploy.Source.data(
+        "config.js",
+        `window.VITE_APP_API_URL="${props.apiUrl}";` 
+        )
+      ],
       destinationBucket: siteBucket,
       distribution,
       distributionPaths: ["/*"],

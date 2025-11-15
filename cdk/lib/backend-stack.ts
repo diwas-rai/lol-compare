@@ -4,6 +4,8 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
 
 export class BackendStack extends cdk.Stack {
+  public readonly functionUrl: lambda.FunctionUrl;
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
@@ -33,17 +35,17 @@ export class BackendStack extends cdk.Stack {
       },
     });
 
-    const functionUrl = dockerFunc.addFunctionUrl({
+    this.functionUrl = dockerFunc.addFunctionUrl({
       authType: lambda.FunctionUrlAuthType.NONE,
       cors: {
         allowedMethods: [lambda.HttpMethod.GET, lambda.HttpMethod.POST],
         allowedHeaders: ["Content-Type"],
-        allowedOrigins: ["*"],
+        allowedOrigins: ["https://www.lol-compare.co.uk"],
       },
     });
 
     new cdk.CfnOutput(this, "FunctionUrlValue", {
-      value: functionUrl.url,
+      value: this.functionUrl.url,
     });
   }
 }
