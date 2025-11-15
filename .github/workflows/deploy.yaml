@@ -9,15 +9,17 @@ env:
   ECR_BACKEND_REPOSITORY: lol-compare/backend
   ECR_FRONTEND_REPOSITORY: lol-compare/frontend
   COMPOSE_DIR: /home/ubuntu/lol-compare
-  CDK_STACK_NAME: CdkStack
+  BACKEND_STACK_NAME: BackendStack
+  CERTIFICATE_STACK_NAME: CertificateStack 
+  FRONTEND_STACK_NAME: FrontendStack 
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  build-and-push:
-    name: Build and Push Images to ECR
+  build-backend-and-push:
+    name: Build and Push Backend Image to ECR
     runs-on: ubuntu-latest
 
     outputs:
@@ -55,27 +57,47 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build, Tag, and Push Frontend Image
-        uses: docker/build-push-action@v5
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        with:
-          context: ./frontend
-          push: true
-          tags: |
-            ${{ env.ECR_REGISTRY }}/${{ env.ECR_FRONTEND_REPOSITORY }}:latest
-            ${{ env.ECR_REGISTRY }}/${{ env.ECR_FRONTEND_REPOSITORY }}:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  deploy:
-    name: Deploy to Lambda via CDK
-    needs: build-and-push
+  build-frontend:
+    name: Build frontend
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+      
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: |
+          bun ci
+      
+      - name: Build Frontend
+        working-directory: ./frontend
+        run: |
+          bun run build
+        
+      - name: Upload Frtonend Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: ./frontend/dist/
+
+  deploy:
+    name: Deploy application via CDK
+    needs: [build-backend-and-push, build-frontend]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Frontend Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: ./frontend/dist/
 
       - name: Configure AWS Credentials for CDK Deploy
         uses: aws-actions/configure-aws-credentials@v4
@@ -94,10 +116,15 @@ jobs:
           npm install -g aws-cdk
           npm ci
           
-        
-      - name: Deploy CDK stack
+      - name: Deploy Backend stack to Lambda
         working-directory: ./cdk
+        env:
+          CDK_DEFAULT_ACCOUNT: ${{ secrets.AWS_ACCOUNT_ID }}
+          CDK_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         run: |
-         cdk deploy ${{ env.CDK_STACK_NAME }} \
-          --parameters ${{ env.CDK_STACK_NAME }}:imageTag=${{ needs.build-and-push.outputs.backend_image_sha }} \
-          --require-approval never
+          cdk bootstrap aws://${{ secrets.AWS_ACCOUNT_ID }}/${{ secrets.AWS_REGION }}
+          cdk bootstrap aws://${{ secrets.AWS_ACCOUNT_ID }}/us-east-1
+
+          cdk deploy --all \
+            --parameters ${{ env.BACKEND_STACK_NAME }}:imageTag=${{ needs.build-backend-and-push.outputs.backend_image_sha }} \
+            --require-approval never

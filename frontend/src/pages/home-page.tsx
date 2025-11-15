@@ -7,6 +7,7 @@ import {
   VictoryTheme,
   VictoryTooltip,
 } from "victory";
+import { API_URL } from "../constants/constants";
 
 interface CoordsFromBackend {
   [key: string]: [number, number];
@@ -26,7 +27,7 @@ export default function Home() {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    fetch("/api/pro-stats/coords/")
+    fetch(`${API_URL}/api/pro-stats/coords/`)
       .then((response) => {
         if (!response.ok) {
           throw new Error("Network response was not ok");
