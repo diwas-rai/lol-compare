@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import ScatterPlot from "../components/scatter-plot";
 import { API_URL } from "../constants/constants";
 
@@ -13,34 +14,17 @@ interface CoordPoint {
 }
 
 export default function Home() {
-  const [backendData, setBackendData] = useState<CoordPoint[] | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<Error | null>(null);
+  const { isPending, error, data } = useQuery({
+    queryKey: ["pro-data-points"],
+    queryFn: async () => {
+      const res = await fetch(`${API_URL}/api/pro-stats/coords`);
+      return await res.json();
+    },
+  });
 
-  useEffect(() => {
-    fetch(`${API_URL}/api/pro-stats/coords/`)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        return response.json();
-      })
-      .then((data) => {
-        const coords = Object.entries(data as CoordsFromBackend).map(
-          ([key, [x, y]]) => ({ x, y, key }),
-        );
-        setBackendData(coords);
-        setLoading(false);
-      })
-      .catch((err: unknown) => {
-        if (err instanceof Error) {
-          setError(err);
-        } else {
-          setError(new Error("An unknown error occurred."));
-        }
-        setLoading(false);
-      });
-  }, []);
+  const coords = Object.entries(data as CoordsFromBackend).map(
+    ([key, [x, y]]) => ({ x, y, key }),
+  );
 
   const calculateDomain = (data: CoordPoint[]) => {
     return data.reduce(
@@ -60,24 +44,20 @@ export default function Home() {
   };
 
   const domain = useMemo((): { x: [number, number]; y: [number, number] } => {
-    if (!backendData || backendData.length === 0)
-      return { x: [0, 0], y: [0, 0] };
-    const { minX, maxX, minY, maxY } = calculateDomain(backendData);
+    if (!coords || coords.length === 0) return { x: [0, 0], y: [0, 0] };
+    const { minX, maxX, minY, maxY } = calculateDomain(coords);
     return { x: [minX - 1, maxX + 1], y: [minY - 1, maxY + 1] };
-  }, [backendData]);
+  }, [coords]);
 
   return (
     <div className="App">
-      {loading && <p>Loading data from backend...</p>}
+      {isPending && "Loading..."}
+      {error && "An error has occurred: " + error.message}
 
-      {error && <p style={{ color: "red" }}>Error: {error.message}</p>}
-
-      {backendData && (
-        <div style={{ width: "500px" }}>
-          <h2>Data from Backend:</h2>
-          <ScatterPlot domain={domain} data={[]} />
-        </div>
-      )}
+      <div style={{ width: "500px" }}>
+        <h2>Data from Backend:</h2>
+        <ScatterPlot domain={domain} data={coords} />
+      </div>
     </div>
   );
 }
