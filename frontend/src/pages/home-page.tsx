@@ -1,12 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  createContainer,
-  VictoryAxis,
-  VictoryChart,
-  VictoryScatter,
-  VictoryTheme,
-  VictoryTooltip,
-} from "victory";
+import ScatterPlot from "../components/scatter-plot";
 import { API_URL } from "../constants/constants";
 
 interface CoordsFromBackend {
@@ -18,8 +11,6 @@ interface CoordPoint {
   y: number;
   key: string;
 }
-
-const VictoryZoomVoronoiContainer = createContainer("zoom", "voronoi");
 
 export default function Home() {
   const [backendData, setBackendData] = useState<CoordPoint[] | null>(null);
@@ -84,33 +75,7 @@ export default function Home() {
       {backendData && (
         <div style={{ width: "500px" }}>
           <h2>Data from Backend:</h2>
-          <VictoryChart
-            domain={domain}
-            theme={VictoryTheme.material}
-            containerComponent={
-              <VictoryZoomVoronoiContainer
-                labels={({ datum }) => datum.key}
-                labelComponent={<VictoryTooltip dy={-10} />}
-                radius={7}
-              />
-            }
-          >
-            <VictoryAxis
-              style={{
-                grid: { strokeOpacity: 0 },
-                axis: { strokeOpacity: 0 },
-                axisLabel: { strokeOpacity: 0 },
-                tickLabels: { fillOpacity: 0 },
-                ticks: { strokeOpacity: 0 },
-              }}
-            />
-
-            <VictoryScatter
-              size={7}
-              data={backendData}
-              style={{ data: { opacity: 0.5 } }}
-            />
-          </VictoryChart>
+          <ScatterPlot domain={domain} data={[]} />
         </div>
       )}
     </div>
