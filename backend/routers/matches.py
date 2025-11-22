@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+import pandas as pd
 import httpx
 from typing import Annotated, AsyncGenerator
 from config import get_settings, Settings
@@ -76,7 +77,10 @@ async def get_match_stats(
             logger.error(f"Failed to process data for match {match_id}: {e}")
             raise HTTPException(status_code=500, detail="Internal server error.")
 
-    return {i: t for i, t in enumerate(processed_stats_list)}
+    df = pd.DataFrame(processed_stats_list)
+    average = df.mean(numeric_only=True)
+
+    return average
 
 
 async def _get_puuid(
@@ -230,39 +234,43 @@ def _get_stats_from_match_timeline(match_timeline_data, puuid):
             )
             opp_cs = opp_frame["minionsKilled"] + opp_frame["jungleMinionsKilled"]
 
-            res["gold_at_" + str(time)] = player_frame["totalGold"]
-            res["xp_at_" + str(time)] = player_frame["xp"]
-            res["cs_at_" + str(time)] = player_cs
+            res["goldat" + str(time)] = player_frame["totalGold"]
+            res["xpat" + str(time)] = player_frame["xp"]
+            res["csat" + str(time)] = player_cs
 
-            res["gold_diff_at_" + str(time)] = (
+            res["golddiffat" + str(time)] = (
                 player_frame["totalGold"] - opp_frame["totalGold"]
             )
 
-            res["xp_diff_at_" + str(time)] = player_frame["xp"] - opp_frame["xp"]
-            res["cs_diff_at_" + str(time)] = player_cs - opp_cs
+            res["xpdiffat" + str(time)] = player_frame["xp"] - opp_frame["xp"]
+            res["csdiffat" + str(time)] = player_cs - opp_cs
 
-            res["kills_at_" + str(time)] = stats["player_at"][time]["kills"]
-            res["assists_at_" + str(time)] = stats["player_at"][time]["assists"]
-            res["deaths_at_" + str(time)] = stats["player_at"][time]["deaths"]
+            res["killsat" + str(time)] = stats["player_at"][time]["kills"]
+            res["assistsat" + str(time)] = stats["player_at"][time]["assists"]
+            res["deathsat" + str(time)] = stats["player_at"][time]["deaths"]
 
-            res["opp_kills_at_" + str(time)] = stats["opp_at"][time]["kills"]
-            res["opp_assists_at_" + str(time)] = stats["opp_at"][time]["assists"]
-            res["opp_deaths_at_" + str(time)] = stats["opp_at"][time]["deaths"]
+            res["opp_goldat" + str(time)] = opp_frame["totalGold"]
+            res["opp_xpat" + str(time)] = opp_frame["xp"]
+            res["opp_csat" + str(time)] = opp_cs
+            res["opp_killsat" + str(time)] = stats["opp_at"][time]["kills"]
+            res["opp_assistsat" + str(time)] = stats["opp_at"][time]["assists"]
+            res["opp_deathsat" + str(time)] = stats["opp_at"][time]["deaths"]
         else:
             for key_prefix in [
                 "gold",
                 "xp",
                 "cs",
-                "gold_diff",
-                "xp_diff",
-                "cs_diff",
+                "golddiff",
+                "xpdiff",
+                "csdiff",
                 "kills",
                 "assists",
                 "deaths",
                 "opp_kills",
                 "opp_assists",
                 "opp_deaths",
+                "opp_gold",
             ]:
-                res[f"{key_prefix}_at_{time}"] = None
+                res[f"{key_prefix}at{time}"] = None
 
     return res
