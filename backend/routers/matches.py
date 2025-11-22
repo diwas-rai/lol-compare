@@ -1,86 +1,130 @@
 from fastapi import APIRouter, Depends, HTTPException
-import requests
-from typing import Annotated
+import httpx
+from typing import Annotated, AsyncGenerator
 from config import get_settings, Settings
+import logging
+import asyncio
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 ConfigDeps = Annotated[Settings, Depends(get_settings)]
 
 
-async def _get_matches(puuid: str, settings: ConfigDeps):
+async def get_http_client() -> AsyncGenerator[httpx.AsyncClient, None]:
+    async with httpx.AsyncClient() as client:
+        yield client
+
+
+HTTPClientDeps = Annotated[httpx.AsyncClient, Depends(get_http_client)]
+
+
+async def _fetch_match_data(url: str, headers: dict, client: HTTPClientDeps):
+    response = await client.get(url, headers=headers)
+    response.raise_for_status()
+    return response.json()
+
+
+@router.get("/stats/")
+async def get_match_stats(
+    gameName: str, tagLine: str, settings: ConfigDeps, client: HTTPClientDeps
+):
+    puuid = await _get_puuid(gameName, tagLine, settings, client)
+    match_list = await _get_matches(puuid, settings, client)
+
+    if not match_list:
+        return {}
+
+    headers = {"X-Riot-Token": settings.RIOT_API_KEY}
+    tasks = []
+
+    for match_id in match_list:
+        match_summary_url = (
+            f"https://europe.api.riotgames.com/lol/match/v5/matches/{match_id}"
+        )
+        match_timeline_url = (
+            f"https://europe.api.riotgames.com/lol/match/v5/matches/{match_id}/timeline"
+        )
+        tasks.append(_fetch_match_data(match_summary_url, headers, client))
+        tasks.append(_fetch_match_data(match_timeline_url, headers, client))
+
+    all_match_data = await asyncio.gather(*tasks, return_exceptions=True)
+
+    processed_stats_list = []
+    for i in range(0, len(all_match_data), 2):
+        match_id = match_list[i // 2]
+        match_summary = all_match_data[i]
+        match_timeline = all_match_data[i + 1]
+
+        if isinstance(match_summary, Exception):
+            logger.warning(
+                f"Failed to fetch match data for {match_id}: {match_summary}"
+            )
+            raise HTTPException(status_code=500, detail="Internal server error.")
+        if isinstance(match_timeline, Exception):
+            logger.warning(
+                f"Failed to fetch timeline data for {match_id}: {match_timeline}"
+            )
+            raise HTTPException(status_code=500, detail="Internal server error.")
+
+        try:
+            match_stats = _get_stats_from_match_endpoint(match_summary, puuid)
+            timeline_stats = _get_stats_from_match_timeline(match_timeline, puuid)
+            processed_stats_list.append({**match_stats, **timeline_stats})
+        except Exception as e:
+            logger.error(f"Failed to process data for match {match_id}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error.")
+
+    return {i: t for i, t in enumerate(processed_stats_list)}
+
+
+async def _get_puuid(
+    gameName: str, tagLine: str, settings: ConfigDeps, client: HTTPClientDeps
+) -> str:
+    url = f"https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{gameName.strip()}/{tagLine.strip()}"
+    headers = {"X-Riot-Token": settings.RIOT_API_KEY}
+
     try:
-        match_list_response = requests.get(
-            f"https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid.strip()}/ids?type=ranked&start=0&count=5",
-            headers={"X-Riot-Token": settings.RIOT_API_KEY},
+        response = await client.get(url, headers=headers)
+        response.raise_for_status()
+
+        player_details = response.json()
+        puuid = player_details.get("puuid")
+        if not puuid:
+            logger.error(f"PUUID not found in response for {gameName}#{tagLine}")
+            raise HTTPException(status_code=404, detail="PUUID not found")
+        return puuid
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 404:
+            raise HTTPException(status_code=404, detail="Player not found.")
+        logger.error(f"Riot API error fetching PUUID: {e}")
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail="Error fetching player details from Riot API.",
         )
-
-        return match_list_response.json()
-
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Internal server error")
+        logger.error(f"Unexpected error fetching PUUID: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error.")
 
 
-async def _get_puuid(gameName, tagLine, settings):
-    player_details_response = requests.get(
-        f"https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{gameName.strip()}/{tagLine.strip()}",
-        headers={"X-Riot-Token": settings.RIOT_API_KEY},
-    )
-    player_details = player_details_response.json()
+async def _get_matches(puuid: str, settings: ConfigDeps, client: HTTPClientDeps):
+    url = f"https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?type=ranked&start=0&count=5"
+    headers = {"X-Riot-Token": settings.RIOT_API_KEY}
+    try:
+        response = await client.get(url, headers=headers)
+        response.raise_for_status()
 
-    puuid = player_details.get("puuid")
-    if not puuid:
-        raise HTTPException(status_code=404, detail="Player not found")
-
-    return {"puuid": puuid}
-
-
-@router.get("/stats")
-async def get_match_stats(gameName: str, tagLine: str, settings: ConfigDeps):
-    puuid_response = await _get_puuid(gameName, tagLine, settings)
-    puuid: str = puuid_response["puuid"]
-    match_list = await _get_matches(puuid, settings)
-
-    res = []
-    res2 = []
-
-    for i, match_id in enumerate(match_list):
-        match_data_response = requests.get(
-            f"https://europe.api.riotgames.com/lol/match/v5/matches/{match_id}",
-            headers={"X-Riot-Token": settings.RIOT_API_KEY},
+        return response.json()
+    except httpx.HTTPStatusError as e:
+        logger.error(f"Riot API error fetching match list: {e}")
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail="Error fetching match list from Riot API.",
         )
-
-        if match_data_response.status_code == 200:
-            match_data = match_data_response.json()
-        else:
-            raise HTTPException(
-                status_code=match_data_response.status_code,
-                detail="Error fetching match data",
-            )
-
-        t = _get_stats_from_match_endpoint(match_data, puuid)
-        res.append(t)
-
-        match_timeline_response = requests.get(
-            f"https://europe.api.riotgames.com/lol/match/v5/matches/{match_id}/timeline",
-            headers={"X-Riot-Token": settings.RIOT_API_KEY},
-        )
-
-        if match_timeline_response.status_code == 200:
-            match_timeline_data = match_timeline_response.json()
-        else:
-            raise HTTPException(
-                status_code=match_timeline_response.status_code,
-                detail="Error fetching match timeline data",
-            )
-
-        t2 = _get_stats_from_match_timeline(match_timeline_data, puuid)
-        res2.append(t2)
-    r = [{**a, **b} for a, b in zip(res, res2)]
-    r2 = {i: t for i, t in enumerate(r)}
-
-    return r2
+    except Exception as e:
+        logger.error(f"Unexpected error fetching match list: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error.")
 
 
 def _find_player_index(participants, puuid):
@@ -95,27 +139,25 @@ def _get_stats_from_match_endpoint(match_data, puuid):
     index = _find_player_index(d["info"]["participants"], puuid)
 
     if index == -1:
-        raise HTTPException(status_code=500, detail="Internal server error")
+        logger.error(f"Could not find player {puuid} in match {d['info']['gameId']}")
+        raise ValueError(f"Player PUUID not found in match participants.")
 
     game_duration = d["info"]["gameDuration"] / 60
+    player_stats = d["info"]["participants"][index]
 
     res = {
-        "kills": d["info"]["participants"][index]["kills"],
-        "deaths": d["info"]["participants"][index]["deaths"],
-        "assists": d["info"]["participants"][index]["assists"],
-        "dpm": d["info"]["participants"][index]["challenges"]["damagePerMinute"],
-        "damageshare": d["info"]["participants"][index]["challenges"][
-            "teamDamagePercentage"
-        ],
-        "damagetakenperminute": d["info"]["participants"][index]["totalDamageTaken"]
-        / game_duration,
-        "wpm": d["info"]["participants"][index]["wardsPlaced"] / game_duration,
-        "wcpm": d["info"]["participants"][index]["wardsKilled"] / game_duration,
-        "vspm": d["info"]["participants"][index]["visionScore"] / game_duration,
-        "earned_gpm": d["info"]["participants"][index]["goldEarned"] / game_duration,
+        "kills": player_stats["kills"],
+        "deaths": player_stats["deaths"],
+        "assists": player_stats["assists"],
+        "dpm": player_stats["challenges"]["damagePerMinute"],
+        "damageshare": player_stats["challenges"]["teamDamagePercentage"],
+        "damagetakenperminute": player_stats["totalDamageTaken"] / game_duration,
+        "wpm": player_stats["wardsPlaced"] / game_duration,
+        "wcpm": player_stats["wardsKilled"] / game_duration,
+        "vspm": player_stats["visionScore"] / game_duration,
+        "earned_gpm": player_stats["goldEarned"] / game_duration,
         "cspm": (
-            d["info"]["participants"][index]["totalMinionsKilled"]
-            + d["info"]["participants"][index]["neutralMinionsKilled"]
+            player_stats["totalMinionsKilled"] + player_stats["neutralMinionsKilled"]
         )
         / game_duration,
     }
@@ -136,6 +178,11 @@ def _get_stats_from_match_timeline(match_timeline_data, puuid):
     player_participant_id = _find_participant_id(
         match_timeline_data["info"]["participants"], puuid
     )
+
+    if player_participant_id is None:
+        logger.error(f"Could not find participantId for {puuid} in match timeline.")
+        raise ValueError("Player PUUID not found in match timeline participants.")
+
     if player_participant_id + 5 <= 10:
         opp_participant_id = player_participant_id + 5
     else:
@@ -144,18 +191,8 @@ def _get_stats_from_match_timeline(match_timeline_data, puuid):
     stats = {
         "player": {"kills": 0, "assists": 0, "deaths": 0},
         "opp": {"kills": 0, "assists": 0, "deaths": 0},
-        "player_at": {
-            10: {"kills": 0, "assists": 0, "deaths": 0},
-            15: {"kills": 0, "assists": 0, "deaths": 0},
-            20: {"kills": 0, "assists": 0, "deaths": 0},
-            25: {"kills": 0, "assists": 0, "deaths": 0},
-        },
-        "opp_at": {
-            10: {"kills": 0, "assists": 0, "deaths": 0},
-            15: {"kills": 0, "assists": 0, "deaths": 0},
-            20: {"kills": 0, "assists": 0, "deaths": 0},
-            25: {"kills": 0, "assists": 0, "deaths": 0},
-        },
+        "player_at": {t: {} for t in [10, 15, 20, 25]},
+        "opp_at": {t: {} for t in [10, 15, 20, 25]},
     }
 
     for i, frame in enumerate(frames):
@@ -163,103 +200,46 @@ def _get_stats_from_match_timeline(match_timeline_data, puuid):
             if event["type"] == "CHAMPION_KILL":
                 if event["killerId"] == player_participant_id:
                     stats["player"]["kills"] += 1
-                elif (
-                    "assistingParticipantIds" in event
-                    and player_participant_id in event["assistingParticipantIds"]
-                ):
+                elif player_participant_id in event.get("assistingParticipantIds", []):
                     stats["player"]["assists"] += 1
                 elif event["victimId"] == player_participant_id:
                     stats["player"]["deaths"] += 1
 
                 if event["killerId"] == opp_participant_id:
                     stats["opp"]["kills"] += 1
-                elif (
-                    "assistingParticipantIds" in event
-                    and opp_participant_id in event["assistingParticipantIds"]
-                ):
+                elif opp_participant_id in event.get("assistingParticipantIds", []):
                     stats["opp"]["assists"] += 1
                 elif event["victimId"] == opp_participant_id:
                     stats["opp"]["deaths"] += 1
 
         if i in stats["player_at"]:
-            stats["player_at"][i]["kills"] = stats["player"]["kills"]
-            stats["player_at"][i]["assists"] = stats["player"]["assists"]
-            stats["player_at"][i]["deaths"] = stats["player"]["deaths"]
+            stats["player_at"][i] = stats["player"].copy()
+            stats["opp_at"][i] = stats["opp"].copy()
 
-            stats["opp_at"][i]["kills"] = stats["opp"]["kills"]
-            stats["opp_at"][i]["assists"] = stats["opp"]["assists"]
-            stats["opp_at"][i]["deaths"] = stats["opp"]["deaths"]
+    res = {}
+    timestamps = [10, 15, 20, 25]
 
-    res = {
-        "gold_at_10": {},
-        "xp_at_10": {},
-        "cs_at_10": {},
-        "gold_diff_at_10": {},
-        "xp_diff_at_10": {},
-        "cs_diff_at_10": {},
-        "kills_at_10": {},
-        "assists_at_10": {},
-        "deaths_at_10": {},
-        "opp_kills_at_10": {},
-        "opp_assists_at_10": {},
-        "opp_deaths_at_10": {},
-        "gold_at_15": {},
-        "xp_at_15": {},
-        "cs_at_15": {},
-        "gold_diff_at_15": {},
-        "xp_diff_at_15": {},
-        "cs_diff_at_15": {},
-        "kills_at_15": {},
-        "assists_at_15": {},
-        "deaths_at_15": {},
-        "opp_kills_at_15": {},
-        "opp_assists_at_15": {},
-        "opp_deaths_at_15": {},
-        "gold_at_20": {},
-        "xp_at_20": {},
-        "cs_at_20": {},
-        "gold_diff_at_20": {},
-        "xp_diff_at_20": {},
-        "cs_diff_at_20": {},
-        "kills_at_20": {},
-        "assists_at_20": {},
-        "deaths_at_20": {},
-        "opp_kills_at_20": {},
-        "opp_assists_at_20": {},
-        "opp_deaths_at_20": {},
-        "gold_at_25": {},
-        "xp_at_25": {},
-        "cs_at_25": {},
-        "gold_diff_at_25": {},
-        "xp_diff_at_25": {},
-        "cs_diff_at_25": {},
-        "kills_at_25": {},
-        "assists_at_25": {},
-        "deaths_at_25": {},
-        "opp_kills_at_25": {},
-        "opp_assists_at_25": {},
-        "opp_deaths_at_25": {},
-    }
-
-    for time in [10, 15, 20, 25]:
+    for time in timestamps:
         if time < len(frames):
             frame = d["info"]["frames"][time]
             player_frame = frame["participantFrames"][str(player_participant_id)]
             opp_frame = frame["participantFrames"][str(opp_participant_id)]
 
-            res["gold_at_" + str(time)] = player_frame["totalGold"]
-            res["xp_at_" + str(time)] = player_frame["xp"]
-            res["cs_at_" + str(time)] = (
+            player_cs = (
                 player_frame["minionsKilled"] + player_frame["jungleMinionsKilled"]
             )
+            opp_cs = opp_frame["minionsKilled"] + opp_frame["jungleMinionsKilled"]
+
+            res["gold_at_" + str(time)] = player_frame["totalGold"]
+            res["xp_at_" + str(time)] = player_frame["xp"]
+            res["cs_at_" + str(time)] = player_cs
 
             res["gold_diff_at_" + str(time)] = (
                 player_frame["totalGold"] - opp_frame["totalGold"]
             )
+
             res["xp_diff_at_" + str(time)] = player_frame["xp"] - opp_frame["xp"]
-            res["cs_diff_at_" + str(time)] = (
-                player_frame["minionsKilled"] + player_frame["jungleMinionsKilled"]
-            ) - (opp_frame["minionsKilled"] + opp_frame["jungleMinionsKilled"])
+            res["cs_diff_at_" + str(time)] = player_cs - opp_cs
 
             res["kills_at_" + str(time)] = stats["player_at"][time]["kills"]
             res["assists_at_" + str(time)] = stats["player_at"][time]["assists"]
@@ -268,5 +248,21 @@ def _get_stats_from_match_timeline(match_timeline_data, puuid):
             res["opp_kills_at_" + str(time)] = stats["opp_at"][time]["kills"]
             res["opp_assists_at_" + str(time)] = stats["opp_at"][time]["assists"]
             res["opp_deaths_at_" + str(time)] = stats["opp_at"][time]["deaths"]
+        else:
+            for key_prefix in [
+                "gold",
+                "xp",
+                "cs",
+                "gold_diff",
+                "xp_diff",
+                "cs_diff",
+                "kills",
+                "assists",
+                "deaths",
+                "opp_kills",
+                "opp_assists",
+                "opp_deaths",
+            ]:
+                res[f"{key_prefix}_at_{time}"] = None
 
     return res
