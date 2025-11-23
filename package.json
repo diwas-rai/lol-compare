@@ -16,7 +16,7 @@
   },
   "scripts": {
     "prepare": "husky",
-    "start-dev": "concurrently --raw \"cd backend && uvicorn main:app --reload --port 8000\" \"cd frontend && bun run dev\""
+    "start-dev": "concurrently --raw \"cd backend/app && uvicorn main:app --reload --port 8000\" \"cd frontend && bun run dev\""
   },
   "lint-staged": {
     "frontend/**/*.{ts,tsx,js,jsx,json,md}": [

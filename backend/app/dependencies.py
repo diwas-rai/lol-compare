@@ -9,7 +9,7 @@ model_and_scaler_load_lock = threading.Lock()
 
 logger = logging.getLogger(__name__)
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 ASSETS_DIR = Path.joinpath(BASE_DIR / "assets")
 logger.info(BASE_DIR)
 
