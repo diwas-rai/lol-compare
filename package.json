@@ -20,7 +20,7 @@
   },
   "lint-staged": {
     "frontend/**/*.{ts,tsx,js,jsx}": [
-      "bunx eslint --fix",
+      "cd frontend && bunx eslint --fix",
       "bunx prettier --write"
     ],
     "frontend/**/*.{json,md}": [
