@@ -24,6 +24,8 @@ export default function Home() {
       const res = await fetch(`${API_URL}/api/pro-stats/coords`);
       return await res.json();
     },
+    refetchOnWindowFocus: false,
+    staleTime: Infinity,
   });
 
   const {
@@ -41,6 +43,7 @@ export default function Home() {
       return await res.json();
     },
     enabled: !!searchParams?.id && !!searchParams?.tag,
+    refetchOnWindowFocus: false,
   });
 
   const handleSearch = (e: React.FormEvent) => {
