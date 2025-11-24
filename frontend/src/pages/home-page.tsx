@@ -21,7 +21,7 @@ export default function Home() {
   const { data: proData } = useQuery({
     queryKey: ["pro-data-points"],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/api/pro-stats/coords`);
+      const res = await fetch(`${API_URL}api/pro-stats/coords`);
       return await res.json();
     },
     refetchOnWindowFocus: false,
@@ -37,7 +37,7 @@ export default function Home() {
     queryFn: async ({ queryKey }) => {
       const [, id, tag] = queryKey;
       const res = await fetch(
-        `${API_URL}/api/analyse/?gameName=${id}&tagLine=${tag}`,
+        `${API_URL}api/analyse/?gameName=${id}&tagLine=${tag}`,
       );
       if (!res.ok) throw new Error("Player not found");
       return await res.json();
