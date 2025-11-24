@@ -43,7 +43,7 @@ export default function ScatterPlot({ domain, data }: GraphProps) {
       <VictoryScatter
         size={dataPointSize}
         data={data}
-        style={{ data: { opacity: 0.5 } }}
+        style={{ data: { opacity: 0.7, fill: ({ datum }) => datum.fill } }}
       />
     </VictoryChart>
   );

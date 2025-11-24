@@ -81,6 +81,7 @@ export default function Home() {
         x,
         y,
         key,
+        fill: "#5C6BC0", //indigo-400
       }))
     : [];
 
@@ -89,6 +90,7 @@ export default function Home() {
         x,
         y,
         key,
+        fill: "4dd0e1", //cyan-300
       }))
     : [];
 
@@ -106,9 +108,9 @@ export default function Home() {
       <div className="w-full max-w-4xl z-10 space-y-12">
         <div className="text-center space-y-4">
           <h1 className="text-5xl font-bold tracking-tight text-white drop-shadow-lg">
-            Player{" "}
+            LoL{" "}
             <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-400 to-cyan-300">
-              Performance
+              Compare
             </span>
           </h1>
           <p className="text-slate-400 text-lg max-w-lg mx-auto">
@@ -209,7 +211,7 @@ export default function Home() {
           <div className="flex items-center justify-between px-2">
             <h2 className="flex items-center gap-2 text-xl font-medium text-white">
               <Activity size={20} className="text-indigo-400" />
-              Data Visualisation
+              Comparison Chart
             </h2>
             {isPlayerAnalysisSuccess && searchParams && (
               <span className="text-xs px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
