@@ -1,5 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { Activity, AlertCircle, LucideLoader2, Search } from "lucide-react";
+import {
+  Activity,
+  AlertCircle,
+  ChevronDown,
+  LucideLoader2,
+  Search,
+} from "lucide-react";
 import { useState } from "react";
 import ScatterPlot from "../components/scatter-plot";
 import { API_URL } from "../constants/constants";
@@ -9,11 +15,15 @@ interface CoordsFromBackend {
   [key: string]: [number, number];
 }
 
+const REGIONS = ["EUW", "EUNE", "NA", "KR", "JP"];
+
 export default function Home() {
+  const [regionInput, setRegionInput] = useState(REGIONS[0]);
   const [riotIdInput, setRiotIdInput] = useState("");
   const [taglineInput, setTaglineInput] = useState("");
 
   const [searchParams, setSearchParams] = useState<{
+    region: string;
     id: string;
     tag: string;
   } | null>(null);
@@ -33,23 +43,33 @@ export default function Home() {
     isLoading: isPlayerLoading,
     error: playerError,
   } = useQuery<CoordsFromBackend>({
-    queryKey: ["player-stats", searchParams?.id, searchParams?.tag],
+    queryKey: [
+      "player-stats",
+      searchParams?.region,
+      searchParams?.id,
+      searchParams?.tag,
+    ],
     queryFn: async ({ queryKey }) => {
-      const [, id, tag] = queryKey;
+      const [, region, id, tag] = queryKey;
       const res = await fetch(
-        `${API_URL}api/analyse/?gameName=${id}&tagLine=${tag}`,
+        `${API_URL}api/analyse/?region=${region}&gameName=${id}&tagLine=${tag}`,
       );
       if (!res.ok) throw new Error("Player not found");
       return await res.json();
     },
-    enabled: !!searchParams?.id && !!searchParams?.tag,
+    enabled:
+      !!searchParams?.region && !!searchParams?.id && !!searchParams?.tag,
     refetchOnWindowFocus: false,
   });
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (riotIdInput && taglineInput) {
-      setSearchParams({ id: riotIdInput, tag: taglineInput });
+      setSearchParams({
+        region: regionInput,
+        id: riotIdInput,
+        tag: taglineInput,
+      });
     }
   };
 
@@ -100,6 +120,33 @@ export default function Home() {
             onSubmit={handleSearch}
             className="flex flex-col md:flex-row gap-4 items-end"
           >
+            <div className="w-full md:w-32 space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 ml-1">
+                Region
+              </label>
+              <div className="relative">
+                <select
+                  value={regionInput}
+                  onChange={(e) => setRegionInput(e.target.value)}
+                  className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-white transition-all cursor-pointer"
+                >
+                  {REGIONS.map((region) => (
+                    <option
+                      key={region}
+                      value={region}
+                      className="bg-slate-900"
+                    >
+                      {region}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+                  size={16}
+                />
+              </div>
+            </div>
+
             <div className="flex-1 space-y-2 w-full">
               <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 ml-1">
                 Riot ID

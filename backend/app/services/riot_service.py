@@ -18,12 +18,25 @@ ConfigDeps = Annotated[Settings, Depends(get_settings)]
 
 logger = logging.getLogger(__name__)
 
+REGION_TO_ROUTE = {
+    "EUW": "europe",
+    "EUNE": "europe",
+    "NA": "americas",
+    "KR": "asia",
+    "JP": "asia",
+}
+
 
 class RiotService:
-    def __init__(self, settings: Settings, client: httpx.AsyncClient):
+    def __init__(self, region: str, settings: Settings, client: httpx.AsyncClient):
+        self.region = region
         self.settings = settings
         self.client = client
         self.headers = {"X-Riot-Token": self.settings.RIOT_API_KEY}
+
+    @property
+    def routing_region(self) -> str:
+        return REGION_TO_ROUTE.get(self.region.upper())
 
     async def get_player_averages(self, gameName: str, tagLine: str) -> dict:
         puuid = await self._get_puuid(gameName, tagLine)
@@ -33,11 +46,10 @@ class RiotService:
             return {}
 
         tasks = []
+        region_route = self.routing_region
         for match_id in match_list:
-            match_summary_url = (
-                f"https://europe.api.riotgames.com/lol/match/v5/matches/{match_id}"
-            )
-            match_timeline_url = f"https://europe.api.riotgames.com/lol/match/v5/matches/{match_id}/timeline"
+            match_summary_url = f"https://{region_route}.api.riotgames.com/lol/match/v5/matches/{match_id}"
+            match_timeline_url = f"https://{region_route}.api.riotgames.com/lol/match/v5/matches/{match_id}/timeline"
             tasks.append(self._fetch_match_data(match_summary_url))
             tasks.append(self._fetch_match_data(match_timeline_url))
 
@@ -85,7 +97,8 @@ class RiotService:
         return response.json()
 
     async def _get_puuid(self, gameName: str, tagLine: str) -> str:
-        url = f"https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{gameName.strip()}/{tagLine.strip()}"
+        region_route = self.routing_region
+        url = f"https://{region_route}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{gameName.strip()}/{tagLine.strip()}"
         try:
             response = await self.client.get(url, headers=self.headers)
             response.raise_for_status()
@@ -100,7 +113,8 @@ class RiotService:
             )
 
     async def _get_matches(self, puuid: str):
-        url = f"https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?type=ranked&start=0&count=5"
+        region_route = self.routing_region
+        url = f"https://{region_route}.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?type=ranked&start=0&count=5"
         try:
             response = await self.client.get(url, headers=self.headers)
             response.raise_for_status()

@@ -21,13 +21,14 @@ UMAPServiceDeps = Annotated[UMAPService, Depends(get_umap_service)]
 
 @router.get("")
 async def analyse_user(
+    region: str,
     gameName: str,
     tagLine: str,
     settings: SettingsDeps,
     client: HTTPClientDeps,
     umap_service: UMAPServiceDeps,
 ):
-    riot_service = RiotService(settings=settings, client=client)
+    riot_service = RiotService(region=region, settings=settings, client=client)
 
     try:
         average_stats = await riot_service.get_player_averages(gameName, tagLine)
