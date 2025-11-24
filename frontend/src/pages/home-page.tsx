@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { Activity, AlertCircle, LucideLoader2, Search } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Activity, AlertCircle, ChevronDown, Search, X } from "lucide-react";
 import { useState } from "react";
 import ScatterPlot from "../components/scatter-plot";
 import { API_URL } from "../constants/constants";
@@ -9,11 +9,16 @@ interface CoordsFromBackend {
   [key: string]: [number, number];
 }
 
+const REGIONS = ["EUW", "EUNE", "NA", "KR", "JP"];
+
 export default function Home() {
+  const queryClient = useQueryClient();
+  const [regionInput, setRegionInput] = useState(REGIONS[0]);
   const [riotIdInput, setRiotIdInput] = useState("");
   const [taglineInput, setTaglineInput] = useState("");
 
   const [searchParams, setSearchParams] = useState<{
+    region: string;
     id: string;
     tag: string;
   } | null>(null);
@@ -29,27 +34,45 @@ export default function Home() {
   });
 
   const {
-    data: playerData,
-    isLoading: isPlayerLoading,
-    error: playerError,
+    data: playerAnalysisData,
+    isLoading: isPlayerAnalysisLoading,
+    isSuccess: isPlayerAnalysisSuccess,
+    error: playerAnalysisError,
   } = useQuery<CoordsFromBackend>({
-    queryKey: ["player-stats", searchParams?.id, searchParams?.tag],
-    queryFn: async ({ queryKey }) => {
-      const [, id, tag] = queryKey;
+    queryKey: [
+      "player-stats",
+      searchParams?.region,
+      searchParams?.id,
+      searchParams?.tag,
+    ],
+    queryFn: async ({ queryKey, signal }) => {
+      const [, region, id, tag] = queryKey;
       const res = await fetch(
-        `${API_URL}api/analyse/?gameName=${id}&tagLine=${tag}`,
+        `${API_URL}api/analyse/?region=${region}&gameName=${id}&tagLine=${tag}`,
+        { signal },
       );
       if (!res.ok) throw new Error("Player not found");
       return await res.json();
     },
-    enabled: !!searchParams?.id && !!searchParams?.tag,
+    enabled:
+      !!searchParams?.region && !!searchParams?.id && !!searchParams?.tag,
     refetchOnWindowFocus: false,
   });
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isPlayerAnalysisLoading) {
+      queryClient.cancelQueries({ queryKey: ["player-stats"] });
+      return;
+    }
+
     if (riotIdInput && taglineInput) {
-      setSearchParams({ id: riotIdInput, tag: taglineInput });
+      setSearchParams({
+        region: regionInput,
+        id: riotIdInput,
+        tag: taglineInput,
+      });
     }
   };
 
@@ -58,14 +81,16 @@ export default function Home() {
         x,
         y,
         key,
+        fill: "#5C6BC0", //indigo-400
       }))
     : [];
 
-  const playerCoords = playerData
-    ? Object.entries(playerData).map(([key, [x, y]]) => ({
+  const playerCoords = playerAnalysisData
+    ? Object.entries(playerAnalysisData).map(([key, [x, y]]) => ({
         x,
         y,
         key,
+        fill: "4dd0e1", //cyan-300
       }))
     : [];
 
@@ -83,9 +108,9 @@ export default function Home() {
       <div className="w-full max-w-4xl z-10 space-y-12">
         <div className="text-center space-y-4">
           <h1 className="text-5xl font-bold tracking-tight text-white drop-shadow-lg">
-            Player{" "}
+            LoL{" "}
             <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-400 to-cyan-300">
-              Performance
+              Compare
             </span>
           </h1>
           <p className="text-slate-400 text-lg max-w-lg mx-auto">
@@ -100,6 +125,33 @@ export default function Home() {
             onSubmit={handleSearch}
             className="flex flex-col md:flex-row gap-4 items-end"
           >
+            <div className="w-full md:w-32 space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 ml-1">
+                Region
+              </label>
+              <div className="relative">
+                <select
+                  value={regionInput}
+                  onChange={(e) => setRegionInput(e.target.value)}
+                  className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-white transition-all cursor-pointer"
+                >
+                  {REGIONS.map((region) => (
+                    <option
+                      key={region}
+                      value={region}
+                      className="bg-slate-900"
+                    >
+                      {region}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+                  size={16}
+                />
+              </div>
+            </div>
+
             <div className="flex-1 space-y-2 w-full">
               <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 ml-1">
                 Riot ID
@@ -133,12 +185,16 @@ export default function Home() {
 
             <button
               type="submit"
-              className="cursor-pointer w-full md:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 px-8 rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(79,70,229,0.5)] flex items-center justify-center gap-2"
+              className={`cursor-pointer w-full md:w-auto font-medium py-3 px-8 rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(79,70,229,0.5)] flex items-center justify-center gap-2 ${
+                isPlayerAnalysisLoading
+                  ? "bg-red-500/80 hover:bg-red-500 text-white"
+                  : "bg-indigo-600 hover:bg-indigo-500 text-white"
+              }`}
             >
-              {isPlayerLoading ? (
+              {isPlayerAnalysisLoading ? (
                 <>
-                  <LucideLoader2 className="animate-spin" />
-                  <span>Analysing...</span>
+                  <X size={18} />
+                  <span>Cancel</span>
                 </>
               ) : (
                 <>
@@ -155,9 +211,9 @@ export default function Home() {
           <div className="flex items-center justify-between px-2">
             <h2 className="flex items-center gap-2 text-xl font-medium text-white">
               <Activity size={20} className="text-indigo-400" />
-              Data Visualization
+              Comparison Chart
             </h2>
-            {searchParams && (
+            {isPlayerAnalysisSuccess && searchParams && (
               <span className="text-xs px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                 Showing: {searchParams.id}#{searchParams.tag}
               </span>
@@ -165,7 +221,7 @@ export default function Home() {
           </div>
 
           <div className="relative bg-slate-900/50 border border-white/5 rounded-3xl p-8 shadow-2xl overflow-hidden min-h-[500px] flex items-center justify-center">
-            {isPlayerLoading && (
+            {isPlayerAnalysisLoading && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900/80 backdrop-blur-sm z-20">
                 <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
                 <span className="text-slate-400 text-sm animate-pulse">
@@ -174,10 +230,10 @@ export default function Home() {
               </div>
             )}
 
-            {playerError && (
+            {playerAnalysisError && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900/90 z-20 text-red-400">
                 <AlertCircle size={32} />
-                <span>{playerError.message}</span>
+                <span>{playerAnalysisError.message}</span>
               </div>
             )}
 
