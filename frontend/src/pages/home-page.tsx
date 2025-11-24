@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Activity, AlertCircle, Search } from "lucide-react";
+import { Activity, AlertCircle, LucideLoader2, Search } from "lucide-react";
 import { useState } from "react";
 import ScatterPlot from "../components/scatter-plot";
 import { API_URL } from "../constants/constants";
@@ -30,12 +30,12 @@ export default function Home() {
     data: playerData,
     isLoading: isPlayerLoading,
     error: playerError,
-  } = useQuery({
+  } = useQuery<CoordsFromBackend>({
     queryKey: ["player-stats", searchParams?.id, searchParams?.tag],
     queryFn: async ({ queryKey }) => {
       const [, id, tag] = queryKey;
       const res = await fetch(
-        `${API_URL}/api/matches/stats/?gameName=${id}&tagLine=${tag}`,
+        `${API_URL}/api/analyse/?gameName=${id}&tagLine=${tag}`,
       );
       if (!res.ok) throw new Error("Player not found");
       return await res.json();
@@ -59,13 +59,11 @@ export default function Home() {
     : [];
 
   const playerCoords = playerData
-    ? [
-        {
-          x: playerData.x,
-          y: playerData.y,
-          key: "YOU",
-        },
-      ]
+    ? Object.entries(playerData).map(([key, [x, y]]) => ({
+        x,
+        y,
+        key,
+      }))
     : [];
 
   const allCoords = playerCoords
@@ -88,7 +86,7 @@ export default function Home() {
             </span>
           </h1>
           <p className="text-slate-400 text-lg max-w-lg mx-auto">
-            Analyze player mechanics and positioning against professional
+            Analyse player mechanics and positioning against professional
             datasets.
           </p>
         </div>
@@ -132,10 +130,19 @@ export default function Home() {
 
             <button
               type="submit"
-              className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 px-8 rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(79,70,229,0.5)] flex items-center justify-center gap-2"
+              className="cursor-pointer w-full md:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 px-8 rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(79,70,229,0.5)] flex items-center justify-center gap-2"
             >
-              <Search size={18} />
-              <span>Analyze</span>
+              {isPlayerLoading ? (
+                <>
+                  <LucideLoader2 className="animate-spin" />
+                  <span>Analysing...</span>
+                </>
+              ) : (
+                <>
+                  <Search size={18} />
+                  <span>Analyse</span>
+                </>
+              )}
             </button>
           </form>
         </div>
@@ -159,7 +166,7 @@ export default function Home() {
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900/80 backdrop-blur-sm z-20">
                 <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
                 <span className="text-slate-400 text-sm animate-pulse">
-                  Fetching player mechanics...
+                  Fetching player stats and analysing...
                 </span>
               </div>
             )}
