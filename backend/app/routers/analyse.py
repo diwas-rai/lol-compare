@@ -19,7 +19,7 @@ SettingsDeps = Annotated[Settings, Depends(get_settings)]
 UMAPServiceDeps = Annotated[UMAPService, Depends(get_umap_service)]
 
 
-@router.get("/")
+@router.get("")
 async def analyse_user(
     gameName: str,
     tagLine: str,
