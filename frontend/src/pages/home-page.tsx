@@ -1,11 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import {
-  Activity,
-  AlertCircle,
-  ChevronDown,
-  LucideLoader2,
-  Search,
-} from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Activity, AlertCircle, ChevronDown, Search, X } from "lucide-react";
 import { useState } from "react";
 import ScatterPlot from "../components/scatter-plot";
 import { API_URL } from "../constants/constants";
@@ -18,6 +12,7 @@ interface CoordsFromBackend {
 const REGIONS = ["EUW", "EUNE", "NA", "KR", "JP"];
 
 export default function Home() {
+  const queryClient = useQueryClient();
   const [regionInput, setRegionInput] = useState(REGIONS[0]);
   const [riotIdInput, setRiotIdInput] = useState("");
   const [taglineInput, setTaglineInput] = useState("");
@@ -39,9 +34,10 @@ export default function Home() {
   });
 
   const {
-    data: playerData,
-    isLoading: isPlayerLoading,
-    error: playerError,
+    data: playerAnalysisData,
+    isLoading: isPlayerAnalysisLoading,
+    isSuccess: isPlayerAnalysisSuccess,
+    error: playerAnalysisError,
   } = useQuery<CoordsFromBackend>({
     queryKey: [
       "player-stats",
@@ -49,10 +45,11 @@ export default function Home() {
       searchParams?.id,
       searchParams?.tag,
     ],
-    queryFn: async ({ queryKey }) => {
+    queryFn: async ({ queryKey, signal }) => {
       const [, region, id, tag] = queryKey;
       const res = await fetch(
         `${API_URL}api/analyse/?region=${region}&gameName=${id}&tagLine=${tag}`,
+        { signal },
       );
       if (!res.ok) throw new Error("Player not found");
       return await res.json();
@@ -64,6 +61,12 @@ export default function Home() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isPlayerAnalysisLoading) {
+      queryClient.cancelQueries({ queryKey: ["player-stats"] });
+      return;
+    }
+
     if (riotIdInput && taglineInput) {
       setSearchParams({
         region: regionInput,
@@ -81,8 +84,8 @@ export default function Home() {
       }))
     : [];
 
-  const playerCoords = playerData
-    ? Object.entries(playerData).map(([key, [x, y]]) => ({
+  const playerCoords = playerAnalysisData
+    ? Object.entries(playerAnalysisData).map(([key, [x, y]]) => ({
         x,
         y,
         key,
@@ -180,12 +183,16 @@ export default function Home() {
 
             <button
               type="submit"
-              className="cursor-pointer w-full md:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 px-8 rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(79,70,229,0.5)] flex items-center justify-center gap-2"
+              className={`cursor-pointer w-full md:w-auto font-medium py-3 px-8 rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(79,70,229,0.5)] flex items-center justify-center gap-2 ${
+                isPlayerAnalysisLoading
+                  ? "bg-red-500/80 hover:bg-red-500 text-white"
+                  : "bg-indigo-600 hover:bg-indigo-500 text-white"
+              }`}
             >
-              {isPlayerLoading ? (
+              {isPlayerAnalysisLoading ? (
                 <>
-                  <LucideLoader2 className="animate-spin" />
-                  <span>Analysing...</span>
+                  <X size={18} />
+                  <span>Cancel</span>
                 </>
               ) : (
                 <>
@@ -202,9 +209,9 @@ export default function Home() {
           <div className="flex items-center justify-between px-2">
             <h2 className="flex items-center gap-2 text-xl font-medium text-white">
               <Activity size={20} className="text-indigo-400" />
-              Data Visualization
+              Data Visualisation
             </h2>
-            {searchParams && (
+            {isPlayerAnalysisSuccess && searchParams && (
               <span className="text-xs px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                 Showing: {searchParams.id}#{searchParams.tag}
               </span>
@@ -212,7 +219,7 @@ export default function Home() {
           </div>
 
           <div className="relative bg-slate-900/50 border border-white/5 rounded-3xl p-8 shadow-2xl overflow-hidden min-h-[500px] flex items-center justify-center">
-            {isPlayerLoading && (
+            {isPlayerAnalysisLoading && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900/80 backdrop-blur-sm z-20">
                 <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
                 <span className="text-slate-400 text-sm animate-pulse">
@@ -221,10 +228,10 @@ export default function Home() {
               </div>
             )}
 
-            {playerError && (
+            {playerAnalysisError && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900/90 z-20 text-red-400">
                 <AlertCircle size={32} />
-                <span>{playerError.message}</span>
+                <span>{playerAnalysisError.message}</span>
               </div>
             )}
 
