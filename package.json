@@ -19,10 +19,15 @@
     "start-dev": "concurrently --raw \"cd backend && uvicorn app.main:app --reload --port 8000\" \"cd frontend && bun run dev\""
   },
   "lint-staged": {
-    "frontend/**/*.{ts,tsx,js,jsx,json,md}": [
+    "frontend/**/*.{ts,tsx,js,jsx}": [
+      "bunx eslint --fix",
+      "bunx prettier --write"
+    ],
+    "frontend/**/*.{json,md}": [
       "bunx prettier --write"
     ],
     "backend/**/*.py": [
+      "poetry -C backend run ruff check --fix",
       "poetry -C backend run ruff format"
     ]
   },
