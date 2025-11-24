@@ -232,7 +232,7 @@ export default function Home() {
                   strokeLinejoin="round"
                 />
               </svg>
-              Scroll to zoom
+              Scroll/Pinch to zoom
             </div>
 
             {isPlayerAnalysisLoading && (
