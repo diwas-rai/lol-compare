@@ -136,7 +136,7 @@ class RiotService:
         index = self._find_player_index(d["info"]["participants"], puuid)
 
         if index == -1:
-            raise ValueError(f"Player PUUID not found in match participants.")
+            raise ValueError("Player PUUID not found in match participants.")
 
         game_duration = d["info"]["gameDuration"] / 60
         player_stats = d["info"]["participants"][index]

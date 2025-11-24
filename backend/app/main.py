@@ -1,10 +1,9 @@
 import logging
-from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
-from app.routers import *
+from app.routers import pro_stats, analyse
 
 logging.basicConfig(
     level=logging.INFO,
