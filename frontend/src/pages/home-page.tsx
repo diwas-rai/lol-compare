@@ -221,6 +221,20 @@ export default function Home() {
           </div>
 
           <div className="relative bg-slate-900/50 border border-white/5 rounded-3xl p-8 shadow-2xl overflow-hidden min-h-[500px] flex items-center justify-center">
+            {/* Zoom hint overlay */}
+            <div className="absolute top-4 right-6 z-30 flex items-center gap-2 bg-black/60 text-white text-xs px-3 py-1 rounded-full shadow-lg animate-pulse pointer-events-none select-none">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+                <path
+                  d="M12 5v14M12 19l-3-3m3 3l3-3M12 5l-3 3m3-3l3 3"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              Scroll to zoom
+            </div>
+
             {isPlayerAnalysisLoading && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900/80 backdrop-blur-sm z-20">
                 <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
