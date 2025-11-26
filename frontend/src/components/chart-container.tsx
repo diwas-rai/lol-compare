@@ -31,7 +31,7 @@ export default function ScatterPlotContainer({
               strokeLinejoin="round"
             />
           </svg>
-          <span className="opacity-80">Scroll to zoom</span>
+          <span className="opacity-80">Pinch/Scroll to zoom</span>
         </div>
 
         {!isPlayerAnalysisLoading && !playerAnalysisError && (
