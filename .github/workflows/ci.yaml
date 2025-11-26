@@ -1,4 +1,4 @@
-name: CI 
+name: CI
 
 on:
   push:
@@ -35,29 +35,29 @@ jobs:
           args: "format --check"
 
   frontend-checks:
-      name: Lint and Check Formatting of Frontend
-      runs-on: ubuntu-latest
-      defaults:
-        run:
-          working-directory: ./frontend
+    name: Lint and Check Formatting of Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
 
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-        - name: Install Bun
-          uses: oven-sh/setup-bun@v2
-          with:
-            bun-version: latest
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
-        - name: Install dependencies
-          run: bun install --frozen-lockfile
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
-        - name: Lint with ESLint
-          run: bunx eslint . --max-warnings=0
+      - name: Lint with ESLint
+        run: bunx eslint . --max-warnings=0
 
-        - name: Check Formatting with Prettier
-          run: bunx prettier --check "**/*.{ts,tsx,js,jsx,json}"
+      - name: Check Formatting with Prettier
+        run: bunx prettier --check "**/*.{ts,tsx,js,jsx,json}"
 
   commitlint:
     runs-on: ubuntu-latest

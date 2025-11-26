@@ -24,12 +24,14 @@ The repository is organised into three main packages:
 
 1. **Root Dependencies**
    Install the root level dependencies (including Husky for git hooks):
+
    ```bash
    bun install
    ```
 
 2. **Backend Setup**
    Navigate to the backend directory and install Python dependencies:
+
    ```bash
    cd backend
    poetry install
@@ -37,6 +39,7 @@ The repository is organised into three main packages:
 
 3. **Frontend Setup**
    Navigate to the frontend directory and install dependencies:
+
    ```bash
    cd frontend
    bun install
@@ -62,12 +65,14 @@ bun run start-dev
 Alternatively, you can run services individually:
 
 **Backend (FastAPI):**
+
 ```bash
 cd backend
 poetry run uvicorn app.main:app --reload --port 8000
 ```
 
 **Frontend (Vite):**
+
 ```bash
 cd frontend
 bun run dev
@@ -92,6 +97,7 @@ npx cdk deploy
 ## 🛠️ Tech Stack
 
 ### Frontend
+
 - **Framework:** React 19
 - **Build Tool:** Vite
 - **Language:** TypeScript
@@ -101,6 +107,7 @@ npx cdk deploy
 - **Icons:** Lucide React
 
 ### Backend
+
 - **Framework:** FastAPI
 - **Package Manager:** Poetry
 - **Data Science:** Pandas, NumPy, Scikit-learn, UMAP-learn
@@ -108,9 +115,10 @@ npx cdk deploy
 - **Linting:** Ruff
 
 ### Infrastructure
+
 - **IaC:** AWS CDK
 - **Language:** TypeScript
 
 ---
 
-*This project was initialised using `bun init`.*
+_This project was initialised using `bun init`._

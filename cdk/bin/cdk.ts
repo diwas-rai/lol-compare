@@ -4,8 +4,8 @@ import { BackendStack } from "../lib/backend-stack";
 import { CertificateStack } from "../lib/certificate-stack";
 import { FrontendStack } from "../lib/frontend-stack";
 
-const domainName = "lol-compare.co.uk"
-const siteSubDomain = "www"
+const domainName = "lol-compare.co.uk";
+const siteSubDomain = "www";
 
 const app = new cdk.App();
 const backendStack = new BackendStack(app, "BackendStack", {
