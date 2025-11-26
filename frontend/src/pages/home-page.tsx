@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Activity, AlertCircle, ChevronDown, Search, X } from "lucide-react";
 import { useState } from "react";
-import ScatterPlot from "../components/scatter-plot";
+import EChartsScatter from "../components/echarts-scatter";
 import { API_URL } from "../constants/constants";
 import { useChartDomain } from "../hooks/useChartDomain";
 
@@ -90,7 +90,7 @@ export default function Home() {
         x,
         y,
         key,
-        fill: "4dd0e1", //cyan-300
+        fill: "#4DD0E1", //cyan-300
       }))
     : [];
 
@@ -253,7 +253,7 @@ export default function Home() {
 
             <div className="w-full h-full flex justify-center items-center relative z-10">
               <div className="w-full h-full max-w-[700px] aspect-square">
-                <ScatterPlot domain={domain} data={allCoords} />
+                <EChartsScatter data={allCoords} domain={domain} />
               </div>
             </div>
 
