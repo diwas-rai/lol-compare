@@ -18,7 +18,7 @@ export class BackendStack extends cdk.Stack {
     const backendRepo = ecr.Repository.fromRepositoryName(
       this,
       "BackendRepo",
-      "lol-compare/backend"
+      "lol-compare/backend",
     );
 
     const dockerFunc = new lambda.DockerImageFunction(this, "DockerFunc", {

@@ -10,8 +10,8 @@ env:
   ECR_FRONTEND_REPOSITORY: lol-compare/frontend
   COMPOSE_DIR: /home/ubuntu/lol-compare
   BACKEND_STACK_NAME: BackendStack
-  CERTIFICATE_STACK_NAME: CertificateStack 
-  FRONTEND_STACK_NAME: FrontendStack 
+  CERTIFICATE_STACK_NAME: CertificateStack
+  FRONTEND_STACK_NAME: FrontendStack
 
 permissions:
   id-token: write
@@ -67,17 +67,17 @@ jobs:
 
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
-      
+
       - name: Install Frontend Dependencies
         working-directory: ./frontend
         run: |
           bun ci
-      
+
       - name: Build Frontend
         working-directory: ./frontend
         run: |
           bun run build
-        
+
       - name: Upload Frontend Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -109,13 +109,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24.11.0
-      
+
       - name: Install CDK dependencies
         working-directory: ./cdk
         run: |
           npm install -g aws-cdk
           npm ci
-          
+
       - name: Deploy All CDK Stacks
         working-directory: ./cdk
         env:

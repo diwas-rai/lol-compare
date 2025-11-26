@@ -46,17 +46,18 @@ export class FrontendStack extends cdk.Stack {
     new route53.ARecord(this, "SiteAliasRecord", {
       recordName: siteDomain,
       target: route53.RecordTarget.fromAlias(
-        new CloudFrontTarget(distribution)
+        new CloudFrontTarget(distribution),
       ),
       zone,
     });
 
     new s3deploy.BucketDeployment(this, "DeployWithInvalidation", {
-      sources: [s3deploy.Source.asset("../frontend/dist"),
+      sources: [
+        s3deploy.Source.asset("../frontend/dist"),
         s3deploy.Source.data(
-        "config.js",
-        `window.VITE_APP_API_URL="${props.apiUrl}";` 
-        )
+          "config.js",
+          `window.VITE_APP_API_URL="${props.apiUrl}";`,
+        ),
       ],
       destinationBucket: siteBucket,
       distribution,
