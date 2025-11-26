@@ -83,13 +83,11 @@ const ScatterPlot = forwardRef(
         dataZoom: [
           {
             type: "inside",
-            xAxisIndex: 0,
-            yAxisIndex: 0,
-            zoomOnMouseWheel: true,
-            zoomOnMouseWheelCenter: "pointer",
-            moveOnMouseWheel: false,
-            moveOnMouseMove: true,
-            filterMode: "none",
+            xAxisIndex: [0],
+          },
+          {
+            type: "inside",
+            yAxisIndex: [0],
           },
         ],
         series: [
