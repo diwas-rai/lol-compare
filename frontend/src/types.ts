@@ -16,5 +16,4 @@ export enum REGIONS {
   NA = "NA",
   KR = "KR",
   JP = "JP",
-  map = "map",
 }
