@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
-from app.routers import pro_stats, analyse
+from app.routers import pro_stats, analyse, warmup
 
 logging.basicConfig(
     level=logging.INFO,
@@ -29,6 +29,7 @@ app.add_middleware(
 
 app.include_router(pro_stats.router, prefix="/api/pro-stats", tags=["Pro Stats"])
 app.include_router(analyse.router, prefix="/api/analyse", tags=["Analyse"])
+app.include_router(warmup.router, prefix="/api/warmup", tags=["Warmup"])
 
 
 @app.get("/")
